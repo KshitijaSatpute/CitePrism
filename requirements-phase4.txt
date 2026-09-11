@@ -1,0 +1,18 @@
+# Phase 4 enterprise runtime. Ranges here; the release pipeline produces the
+# hashed, platform-specific lock files and resolves image tags to digests.
+-r requirements-phase3.txt
+
+# Durable workspace: connection pooling for the PostgreSQL backend.
+psycopg-pool>=3.2,<4
+
+# OIDC bearer-token verification (RS256/ES256 with a published JWKS).
+pyjwt[crypto]>=2.9,<3
+cryptography>=43,<47
+
+# OCR for scanned manuscripts. The tesseract binary must also be installed:
+#   Debian/Ubuntu : apt-get install tesseract-ocr
+#   Windows       : https://github.com/UB-Mannheim/tesseract/wiki
+#   macOS         : brew install tesseract
+# Leave CITEPRISM_ENABLE_OCR=false to run without it.
+pytesseract>=0.3.13,<1
+Pillow>=10.4,<12

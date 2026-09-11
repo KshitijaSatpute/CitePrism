@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1620 1010" width="1620" height="1010" font-family="Segoe UI, Inter, system-ui, sans-serif">
+<defs>
+<marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M 0 0 L 10 5 L 0 10 z" fill="#5b6b7c"/></marker>
+<style>.t{text-anchor:middle;fill:#12232f}.l{text-anchor:start}</style></defs>
+<rect width="1620" height="1010" fill="#ffffff"/>
+<text x="40" y="44" class="l" font-size="24" font-weight="700" fill="#123">CitePrism Phase 4 — Enterprise runtime and evidence acquisition</text>
+<text x="40" y="67" class="l" font-size="13" fill="#5b6b7c">The system as built. Automated output is evidence for a reviewer to weigh, never a finding of error or misconduct.</text>
+<rect x="40" y="88" width="700" height="118" rx="14" fill="#fbfdfd" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="56" y="108" class="l" font-size="12" font-weight="700" fill="#166b73">CLIENTS</text>
+<rect x="60" y="114" width="330" height="76" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="225.0" y="135" class="t" font-size="14.5" font-weight="600">React review workspace</text>
+<text x="225.0" y="151.0" class="t" font-size="11" fill="#4a5b6b">queue · evidence · repairs · insights</text>
+<text x="225.0" y="165.5" class="t" font-size="11" fill="#4a5b6b">exports · operations · team · activity</text>
+<rect x="406" y="114" width="314" height="76" rx="10" fill="#ffffff" stroke="#93a4b3" stroke-width="1.6" stroke-dasharray="4 4"/>
+<text x="563.0" y="135" class="t" font-size="14.5" font-weight="600">Streamlit</text>
+<text x="563.0" y="151.0" class="t" font-size="11" fill="#4a5b6b">diagnostic fallback</text>
+<text x="563.0" y="165.5" class="t" font-size="11" fill="#4a5b6b">unchanged from Phase 2</text>
+<rect x="766" y="88" width="480" height="118" rx="14" fill="#fbfdfd" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="782" y="108" class="l" font-size="12" font-weight="700" fill="#166b73">IDENTITY</text>
+<rect x="786" y="114" width="212" height="76" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="892.0" y="135" class="t" font-size="14.5" font-weight="600">OIDC issuer</text>
+<text x="892.0" y="151.0" class="t" font-size="11" fill="#4a5b6b">JWKS · groups</text>
+<text x="892.0" y="165.5" class="t" font-size="11" fill="#4a5b6b">RS256 / ES256</text>
+<rect x="1014" y="114" width="212" height="76" rx="10" fill="#ffffff" stroke="#93a4b3" stroke-width="1.6"/>
+<text x="1120.0" y="135" class="t" font-size="14.5" font-weight="600">Identity-aware proxy</text>
+<text x="1120.0" y="151.0" class="t" font-size="11" fill="#4a5b6b">trusted_proxy mode</text>
+<text x="1120.0" y="165.5" class="t" font-size="11" fill="#4a5b6b">header injection</text>
+<rect x="40" y="226" width="1206" height="118" rx="14" fill="#fbfdfd" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="56" y="246" class="l" font-size="12" font-weight="700" fill="#166b73">API TIER — FastAPI /api/v1</text>
+<rect x="60" y="252" width="262" height="74" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="191.0" y="273" class="t" font-size="14.5" font-weight="600">Authentication</text>
+<text x="191.0" y="289.0" class="t" font-size="11" fill="#4a5b6b">local · trusted_proxy · oidc</text>
+<text x="191.0" y="303.5" class="t" font-size="11" fill="#4a5b6b">one Principal, always</text>
+<rect x="338" y="252" width="262" height="74" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="469.0" y="273" class="t" font-size="14.5" font-weight="600">RBAC matrix</text>
+<text x="469.0" y="289.0" class="t" font-size="11" fill="#4a5b6b">18 permissions · 6 roles</text>
+<text x="469.0" y="303.5" class="t" font-size="11" fill="#4a5b6b">viewer → administrator</text>
+<rect x="616" y="252" width="610" height="74" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="921.0" y="273" class="t" font-size="14.5" font-weight="600">Routes</text>
+<text x="921.0" y="289.0" class="t" font-size="11" fill="#4a5b6b">manuscripts · review · decisions · corrections · assignment</text>
+<text x="921.0" y="303.5" class="t" font-size="11" fill="#4a5b6b">repairs · exports · insights · telemetry · evaluation</text>
+<rect x="40" y="364" width="1206" height="104" rx="14" fill="#f7fbfb" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="56" y="384" class="l" font-size="12" font-weight="700" fill="#166b73">DURABLE QUEUE</text>
+<rect x="420" y="386" width="446" height="70" rx="10" fill="#e8f2f3" stroke="#166b73" stroke-width="1.6"/>
+<text x="643.0" y="407" class="t" font-size="14.5" font-weight="600">jobs — lease-based work claim</text>
+<text x="643.0" y="423.0" class="t" font-size="11" fill="#4a5b6b">FOR UPDATE SKIP LOCKED · priority · backoff</text>
+<text x="643.0" y="437.5" class="t" font-size="11" fill="#4a5b6b">attempts → dead letter · crash-safe leases</text>
+<rect x="40" y="488" width="1206" height="120" rx="14" fill="#fbfdfd" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="56" y="508" class="l" font-size="12" font-weight="700" fill="#166b73">WORKER TIER — horizontally scalable</text>
+<rect x="60" y="514" width="218" height="78" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="169.0" y="535" class="t" font-size="14.5" font-weight="600">Worker 1</text>
+<text x="169.0" y="551.0" class="t" font-size="11" fill="#4a5b6b">lease → heartbeat → release</text>
+<text x="169.0" y="565.5" class="t" font-size="11" fill="#4a5b6b">SIGTERM drains cleanly</text>
+<rect x="294" y="514" width="218" height="78" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="403.0" y="535" class="t" font-size="14.5" font-weight="600">Worker N</text>
+<text x="403.0" y="551.0" class="t" font-size="11" fill="#4a5b6b">--scale worker=N</text>
+<text x="403.0" y="565.5" class="t" font-size="11" fill="#4a5b6b">stateless containers</text>
+<rect x="546" y="514" width="300" height="78" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="696.0" y="535" class="t" font-size="14.5" font-weight="600">AuditExecutor</text>
+<text x="696.0" y="551.0" class="t" font-size="11" fill="#4a5b6b">transient failure → retry with backoff</text>
+<text x="696.0" y="565.5" class="t" font-size="11" fill="#4a5b6b">deterministic failure → fail fast</text>
+<rect x="880" y="514" width="346" height="78" rx="10" fill="#fffdf7" stroke="#b8791f" stroke-width="1.6"/>
+<text x="1053.0" y="535" class="t" font-size="14.5" font-weight="600">Repair planner</text>
+<text x="1053.0" y="551.0" class="t" font-size="11" fill="#4a5b6b">3 system issues → targeted re-run</text>
+<text x="1053.0" y="565.5" class="t" font-size="11" fill="#4a5b6b">always a NEW audit; artifact preserved</text>
+<rect x="40" y="628" width="1206" height="140" rx="14" fill="#fbfdfd" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="56" y="648" class="l" font-size="12" font-weight="700" fill="#166b73">EVIDENCE PIPELINE</text>
+<rect x="60" y="654" width="220" height="96" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="170.0" y="675" class="t" font-size="13" font-weight="600">OCR</text>
+<text x="170.0" y="691.0" class="t" font-size="10.4" fill="#4a5b6b">text-layer detection</text>
+<text x="170.0" y="705.5" class="t" font-size="10.4" fill="#4a5b6b">tesseract recovery</text>
+<text x="170.0" y="720.0" class="t" font-size="10.4" fill="#4a5b6b">OCR text is labelled</text>
+<rect x="292" y="654" width="220" height="96" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="402.0" y="675" class="t" font-size="13" font-weight="600">Extraction</text>
+<text x="402.0" y="691.0" class="t" font-size="10.4" fill="#4a5b6b">printed-entry anchoring</text>
+<text x="402.0" y="705.5" class="t" font-size="10.4" fill="#4a5b6b">numbering preserved</text>
+<path d="M 280 702 L 292 702" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="524" y="654" width="220" height="96" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="634.0" y="675" class="t" font-size="13" font-weight="600">Multi-provider resolution</text>
+<text x="634.0" y="691.0" class="t" font-size="10.4" fill="#4a5b6b">OpenAlex · Crossref</text>
+<text x="634.0" y="705.5" class="t" font-size="10.4" fill="#4a5b6b">Semantic Scholar</text>
+<text x="634.0" y="720.0" class="t" font-size="10.4" fill="#4a5b6b">merge · corroborate</text>
+<path d="M 512 702 L 524 702" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="756" y="654" width="220" height="96" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="866.0" y="675" class="t" font-size="13" font-weight="600">Open-access full text</text>
+<text x="866.0" y="691.0" class="t" font-size="10.4" fill="#4a5b6b">arXiv · PMC · Unpaywall</text>
+<text x="866.0" y="705.5" class="t" font-size="10.4" fill="#4a5b6b">licensed content never scraped</text>
+<path d="M 744 702 L 756 702" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="988" y="654" width="220" height="96" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="1098.0" y="675" class="t" font-size="13" font-weight="600">Grounded assessment</text>
+<text x="1098.0" y="691.0" class="t" font-size="10.4" fill="#4a5b6b">claim + quotation checks</text>
+<text x="1098.0" y="705.5" class="t" font-size="10.4" fill="#4a5b6b">no unchecked verdict</text>
+<path d="M 976 702 L 988 702" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="420" y="800" width="446" height="58" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="643.0" y="821" class="t" font-size="14.5" font-weight="600">build_review — one projection</text>
+<text x="643.0" y="837.0" class="t" font-size="10.6" fill="#4a5b6b">the same payload drives the UI, the exports and the audit trail</text>
+<rect x="1272" y="88" width="328" height="830" rx="14" fill="#f7fbfb" stroke="#166b73" stroke-width="1.3" stroke-dasharray="6 5"/>
+<text x="1288" y="108" class="l" font-size="12" font-weight="700" fill="#166b73">STATE AND OBSERVABILITY</text>
+<rect x="1292" y="118" width="288" height="96" rx="10" fill="#e8f2f3" stroke="#166b73" stroke-width="1.6"/>
+<text x="1436.0" y="139" class="t" font-size="14.5" font-weight="600">PostgreSQL workspace</text>
+<text x="1436.0" y="155.0" class="t" font-size="11" fill="#4a5b6b">organizations · audits · jobs</text>
+<text x="1436.0" y="169.5" class="t" font-size="11" fill="#4a5b6b">decisions · assignments · repairs</text>
+<text x="1436.0" y="184.0" class="t" font-size="11" fill="#4a5b6b">append-only activity hash chain</text>
+<rect x="1292" y="230" width="288" height="76" rx="10" fill="#e8f2f3" stroke="#166b73" stroke-width="1.6"/>
+<text x="1436.0" y="251" class="t" font-size="14.5" font-weight="600">PostgreSQL trust ledger</text>
+<text x="1436.0" y="267.0" class="t" font-size="11" fill="#4a5b6b">immutable evidence provenance</text>
+<text x="1436.0" y="281.5" class="t" font-size="11" fill="#4a5b6b">unchanged since Phase 1</text>
+<rect x="1292" y="322" width="288" height="96" rx="10" fill="#e8f2f3" stroke="#166b73" stroke-width="1.6"/>
+<text x="1436.0" y="343" class="t" font-size="14.5" font-weight="600">S3-compatible objects</text>
+<text x="1436.0" y="359.0" class="t" font-size="11" fill="#4a5b6b">manuscripts · artifacts · exports</text>
+<text x="1436.0" y="373.5" class="t" font-size="11" fill="#4a5b6b">content-addressed, digest-verified</text>
+<text x="1436.0" y="388.0" class="t" font-size="11" fill="#4a5b6b">AWS S3 · MinIO · Ceph RGW</text>
+<rect x="1292" y="434" width="288" height="88" rx="10" fill="#ffffff" stroke="#166b73" stroke-width="1.6"/>
+<text x="1436.0" y="455" class="t" font-size="14.5" font-weight="600">Signed review packages</text>
+<text x="1436.0" y="471.0" class="t" font-size="11" fill="#4a5b6b">PDF · HTML · JSON · bundle</text>
+<text x="1436.0" y="485.5" class="t" font-size="11" fill="#4a5b6b">Ed25519 detached signature</text>
+<rect x="1292" y="538" width="288" height="88" rx="10" fill="#ffffff" stroke="#b8791f" stroke-width="1.6"/>
+<text x="1436.0" y="559" class="t" font-size="14.5" font-weight="600">Telemetry</text>
+<text x="1436.0" y="575.0" class="t" font-size="11" fill="#4a5b6b">stage latency · tokens · cost</text>
+<text x="1436.0" y="589.5" class="t" font-size="11" fill="#4a5b6b">per-audit and per-provider</text>
+<rect x="1292" y="642" width="288" height="96" rx="10" fill="#ffffff" stroke="#b8791f" stroke-width="1.6"/>
+<text x="1436.0" y="663" class="t" font-size="14.5" font-weight="600">SLO report</text>
+<text x="1436.0" y="679.0" class="t" font-size="11" fill="#4a5b6b">6 objectives · queue depth</text>
+<text x="1436.0" y="693.5" class="t" font-size="11" fill="#4a5b6b">latency · success · resolution</text>
+<text x="1436.0" y="708.0" class="t" font-size="11" fill="#4a5b6b">system-issue ratio · cost</text>
+<rect x="1292" y="754" width="288" height="96" rx="10" fill="#ffffff" stroke="#b8791f" stroke-width="1.6"/>
+<text x="1436.0" y="775" class="t" font-size="14.5" font-weight="600">Evaluation</text>
+<text x="1436.0" y="791.0" class="t" font-size="11" fill="#4a5b6b">labeled datasets (JSONL)</text>
+<text x="1436.0" y="805.5" class="t" font-size="11" fill="#4a5b6b">precision · recall · F1</text>
+<text x="1436.0" y="820.0" class="t" font-size="11" fill="#4a5b6b">Brier · ECE · reliability bins</text>
+<path d="M 225 190 L 225 252" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 900 206 L 900 218 L 300 218 L 300 252" fill="none" stroke="#93a4b3" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="535.2" y="174" width="49.599999999999994" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="600" y="213" class="t" font-size="10.5" fill="#93a4b3">verified identity claims</text>
+
+<path d="M 322 289 L 338 289" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 600 289 L 616 289" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 700 326 L 700 386" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="671.9" y="351" width="56.199999999999996" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="700.0" y="362" class="t" font-size="10.5" fill="#5b6b7c">enqueue</text>
+<path d="M 1226 289 L 1250 289 L 1250 166 L 1292 166" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1205.4" y="217" width="89.19999999999999" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1250" y="228" class="t" font-size="10.5" fill="#5b6b7c">read / write</text>
+<path d="M 560 456 L 560 480 L 169 480 L 169 514" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 720 456 L 720 480 L 403 480 L 403 514" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 512 553 L 546 553" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 696 592 L 696 628" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="681.1" y="611" width="29.799999999999997" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="696.0" y="622" class="t" font-size="10.5" fill="#5b6b7c">run</text>
+<path d="M 1053 514 L 1053 490 L 1053 470 L 866 470 L 866 440" fill="none" stroke="#b8791f" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="945.3" y="453" width="69.4" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="980" y="464" class="t" font-size="10.5" fill="#b8791f">new audit</text>
+<path d="M 846 553 L 880 553" fill="none" stroke="#b8791f" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 643 750 L 643 800" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 866 829 L 1252 829 L 1252 478 L 1292 478" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1227.2" y="649" width="49.599999999999994" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1252" y="660" class="t" font-size="10.5" fill="#5b6b7c">export</text>
+<path d="M 1246 570 L 1262 570 L 1262 582 L 1292 582" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1237.2" y="547" width="49.599999999999994" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1262" y="558" class="t" font-size="10.5" fill="#5b6b7c">record</text>
+<path d="M 1436 626 L 1436 642" fill="none" stroke="#5b6b7c" stroke-width="1.7" marker-end="url(#a)" stroke-linejoin="round"/>
+<path d="M 1292 802 L 1266 802 L 1266 380 L 1292 380" fill="none" stroke="#93a4b3" stroke-width="1.7" stroke-dasharray="5 4" marker-end="url(#a)" stroke-linejoin="round"/>
+<rect x="1231.3" y="585" width="69.4" height="15" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1266" y="596" class="t" font-size="10.5" fill="#93a4b3">artifacts</text>
+<text x="40" y="954" class="l" font-size="11.5" fill="#5b6b7c">Filled boxes are durable stores. Dashed borders mark components carried unchanged from an earlier phase.</text>
+<text x="40" y="973" class="l" font-size="11.5" fill="#5b6b7c">Every store is tenant-scoped: a cross-tenant identifier resolves to “not found”, never to another organization’s row.</text>
+<text x="40" y="992" class="l" font-size="11.5" fill="#b8791f">Quotation grounding proves attribution to a stored source snapshot. It does not establish that the citing interpretation is correct.</text>
+</svg>

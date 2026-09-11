@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.venv*
+node_modules
+web/node_modules
+web/dist
+data
+database/*.db
+cache
+logs
+.trust-verify
+*.patch
+*.zip

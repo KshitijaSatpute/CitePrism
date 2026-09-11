@@ -1,0 +1,16 @@
+# Phase 2 runtime and verification. Topic embeddings and legacy dashboards are optional.
+numpy>=2.0,<3
+pydantic>=2.9,<3
+python-dotenv>=1,<2
+psycopg[binary]>=3.2,<4
+boto3>=1.36,<2
+setuptools>=75
+wheel
+beautifulsoup4>=4.12,<5
+requests>=2.32,<3
+pypdf>=5,<7
+pypdfium2>=5.3,<6
+google-genai>=2.22,<3
+openai>=1.50,<2
+huggingface-hub>=0.27,<2
+streamlit>=1.50,<2

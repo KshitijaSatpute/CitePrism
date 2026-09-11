@@ -1,0 +1,82 @@
+%% CitePrism Phase 4 — the system as built.
+%% Rendered to SVG/PNG by scripts/render_architecture.py (mermaid-cli).
+flowchart TB
+    subgraph clients["Clients"]
+        REACT["React review workspace<br/>queue · evidence · repairs<br/>insights · exports · operations"]
+        STREAMLIT["Streamlit<br/>diagnostic fallback"]
+    end
+
+    subgraph identity["Identity"]
+        IDP["OIDC issuer<br/>JWKS · groups"]
+        PROXY["Identity-aware proxy<br/>trusted_proxy mode"]
+    end
+
+    subgraph api["API tier — FastAPI /api/v1"]
+        AUTH["Authentication<br/>local · trusted_proxy · oidc"]
+        RBAC["RBAC matrix<br/>18 permissions · 6 roles"]
+        ROUTES["Routes<br/>manuscripts · review · decisions<br/>assignment · repairs · exports<br/>insights · telemetry · evaluation"]
+    end
+
+    subgraph queue["Durable queue"]
+        JOBS[("jobs<br/>lease · priority · backoff<br/>attempts · dead letter")]
+    end
+
+    subgraph workers["Worker tier — horizontally scalable"]
+        W1["Worker 1<br/>lease → heartbeat → release"]
+        W2["Worker N"]
+        EXEC["AuditExecutor<br/>transient vs deterministic failure"]
+    end
+
+    subgraph pipeline["Evidence pipeline"]
+        OCR["OCR<br/>text-layer detection<br/>tesseract recovery"]
+        PARSE["Extraction<br/>printed-entry anchoring"]
+        RESOLVE["Multi-provider resolution<br/>OpenAlex · Crossref · Semantic Scholar<br/>merge · corroborate · preserve disagreement"]
+        FULLTEXT["Open-access full text<br/>arXiv · PMC · Unpaywall"]
+        ASSESS["Grounded assessment<br/>claim + quotation checks"]
+        PROJECT["build_review<br/>one projection for UI, export and audit"]
+    end
+
+    subgraph state["State"]
+        PG[("PostgreSQL workspace<br/>orgs · audits · decisions<br/>assignments · repairs<br/>append-only activity chain")]
+        TRUST[("PostgreSQL trust ledger<br/>immutable evidence provenance")]
+        OBJ[("S3-compatible objects<br/>manuscripts · artifacts · exports<br/>content-addressed")]
+    end
+
+    subgraph observability["Observability"]
+        TELE["Telemetry<br/>stage latency · tokens · cost"]
+        SLO["SLO report<br/>6 objectives"]
+        EVAL["Evaluation<br/>labeled datasets<br/>precision · recall · ECE · Brier"]
+    end
+
+    REACT --> AUTH
+    STREAMLIT --> AUTH
+    IDP -.->|"verify JWKS"| AUTH
+    PROXY --> AUTH
+    AUTH --> RBAC --> ROUTES
+
+    ROUTES -->|enqueue| JOBS
+    ROUTES --> PG
+    ROUTES --> OBJ
+    ROUTES --> SLO
+    ROUTES --> EVAL
+
+    JOBS -->|"FOR UPDATE SKIP LOCKED"| W1
+    JOBS --> W2
+    W1 --> EXEC
+    W2 --> EXEC
+
+    EXEC --> OCR --> PARSE --> RESOLVE --> FULLTEXT --> ASSESS --> PROJECT
+    PROJECT --> PG
+    PROJECT --> OBJ
+    PROJECT --> TRUST
+    EXEC --> TELE --> SLO
+    PROJECT -.->|"system issues"| REPAIR["Repair planner<br/>targeted re-run, new audit"]
+    REPAIR -->|"new audit"| JOBS
+
+    PG --> SLO
+    OBJ --> EVAL
+
+    classDef store fill:#e8f2f3,stroke:#166b73,stroke-width:2px,color:#123
+    classDef warn fill:#fdf3e3,stroke:#b8791f,color:#123
+    class PG,TRUST,OBJ,JOBS store
+    class REPAIR warn

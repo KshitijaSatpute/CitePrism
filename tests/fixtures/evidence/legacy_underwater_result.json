@@ -1,0 +1,813 @@
+{
+    "manuscript_metadata": {
+        "title": "UNDERWATER COMMUNICATION SYSTEM FOR SCUBA DIVERS",
+        "doi": null,
+        "authors": [
+            "Snehal Borhade",
+            "Janvi Mahapadi",
+            "Samrudhi Bandi",
+            "Dr. S.B. Dhonde"
+        ],
+        "abstract": "Underwater wireless communication (UWC) plays a critical role in applications such as tactical surveillance, marine biology monitoring, pollution detection, and underwater infrastructure maintenance. Traditional radio frequency (RF) communication methods, including Wi-Fi, are ineffective underwater due to rapid absorption of radio waves. In contrast, optical wireless communication (OWC) using light, particularly Li-Fi offers a promising alternative, as light can penetrate water more effectively. This paper presents a laser -based underwater communication system designed for real -time audio transmission. Pulse Amplitude Modulation (PAM) is employed to encode audio signals into laser pulses, which are transmitted through water and received by a solar panel functioning as a photodetector. A comprehensive literature review highlights the use of different laser wavelengths to optimize transmission efficiency, range, and error rates, and discusses acknowledgment mechanisms to detect signal loss. Experimental results demonstrate successful audio transmission in water over a 1 -meter distance and text transmission in air over 5 meters using a line -of-sight setup, with minimal laten cy. Key challenges encountered include beam divergence, water turbidity, and alignment sensitivity. Despite range limitations typically reported in literature (7 \u201310 meters underwater), our prototype illustrates the potential for low-cost, energy -efficient laser-based systems in applications such as diver communication, marine research, and underwater sensor networks."
+    },
+    "citations_in_text": [
+        {
+            "marker": "[1]",
+            "context_window": "Various studies have explored underwater communication using optical and Li -Fi technologies. A paper presented a Li -Fi-based underwater communication system that faced challenges with signal attenuation and limited range, suggesting improvements in transmitter design,[1]. As demonstrated a prototype using a red laser and Arduino UNO for text transmission over 2 meters, achieving higher data rates than acoustic methods but suffering from line -of-sight limitations and noise, [9]."
+        },
+        {
+            "marker": "[9]",
+            "context_window": "A paper presented a Li -Fi-based underwater communication system that faced challenges with signal attenuation and limited range, suggesting improvements in transmitter design,[1]. As demonstrated a prototype using a red laser and Arduino UNO for text transmission over 2 meters, achieving higher data rates than acoustic methods but suffering from line -of-sight limitations and noise, [9]. A visible light communication system for real-time audio transmission with a short range of 15 cm, suggesting the use of additional LED colors like blue or green for extended distance, [4]."
+        },
+        {
+            "marker": "[4]",
+            "context_window": "As demonstrated a prototype using a red laser and Arduino UNO for text transmission over 2 meters, achieving higher data rates than acoustic methods but suffering from line -of-sight limitations and noise, [9]. A visible light communication system for real-time audio transmission with a short range of 15 cm, suggesting the use of additional LED colors like blue or green for extended distance, [4]. A paper even explored a 5 Mbps optical wireless communication system with error correction coding, proposing a synchronization algorithm to ensure reliable data transmission,[3]."
+        },
+        {
+            "marker": "[3]",
+            "context_window": "A visible light communication system for real-time audio transmission with a short range of 15 cm, suggesting the use of additional LED colors like blue or green for extended distance, [4]. A paper even explored a 5 Mbps optical wireless communication system with error correction coding, proposing a synchronization algorithm to ensure reliable data transmission,[3]. An underwater communication system for deep -sea divers using visible light, highlighting challenges with beam spread and recommending optimized transmitter designs."
+        },
+        {
+            "marker": "[5]",
+            "context_window": "An underwater communication system for deep -sea divers using visible light, highlighting challenges with beam spread and recommending optimized transmitter designs. These studies collectively underscore the potential of optical communication for underwater applications, while identifying key areas for enhancement to achieve higher data rates, reliability, and extended communication range, [5]. The short transmission range and signal degradation in deep water, recommending advancements to enhance signal strength and mitigate environmental interference,[2]."
+        },
+        {
+            "marker": "[2]",
+            "context_window": "These studies collectively underscore the potential of optical communication for underwater applications, while identifying key areas for enhancement to achieve higher data rates, reliability, and extended communication range, [5]. The short transmission range and signal degradation in deep water, recommending advancements to enhance signal strength and mitigate environmental interference,[2]."
+        },
+        {
+            "marker": "[1]",
+            "context_window": "Literature Review Various studies have explored underwater communication using optical and Li -Fi technologies. A paper presented a Li -Fi-based underwater communication system that faced challenges with signal attenuation and limited range, suggesting improvements in transmitter design,[1]. As demonstrated a prototype using a red laser and Arduino UNO for text transmission over 2 meters, achieving higher data rates than acoustic methods but suffering from line -of-sight limitations and noise, [9]."
+        },
+        {
+            "marker": "[3]",
+            "context_window": "A visible light communication system for real- time audio transmission with a short range of 15 cm, suggesting the use of additional LED colors like blue or green for extended distance, [4]. A paper even explored a 5 Mbps optical wireless communication system with error correction coding, proposing a synchronization algorithm to ensure reliable data transmission,[3]. An underwater communication system for deep -sea divers using visible light, highlighting challenges with beam spread and recommending optimized transmitter designs."
+        }
+    ],
+    "scored_references": [
+        {
+            "ref_id": "[1]",
+            "original_data": {
+                "ref_id": "[1]",
+                "parsed": {
+                    "title": "Li -Fi Based Underwater Communication",
+                    "authors": [
+                        "Srikanth, B.",
+                        "Kumar, C. V.",
+                        "Khan, P. S.",
+                        "Vara Prasad, V. V. H. C."
+                    ],
+                    "year": 2024,
+                    "venue": "International Journal of Research Publication and Reviews",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Mismatch Flagged (Year diff: 3)",
+            "external_metadata": {
+                "id": "https://openalex.org/W3191679824",
+                "title": "Li-Fi based Data Transmission for Underwater Communication",
+                "year": 2021,
+                "abstract": "Communication imparts a major role in the survival of mankind. Communication rather than being a survival, it is being identified as basic purpose of understanding between every organism for their safe and healthy well-being. Earlier Electromagnetic (EM) waves were used for communication. But later, it was realized that these waves were less efficient. Here, this research work mainly focuses on the concept of data transmission. Li-Fi (Light Fidelity) was new to everyone a decade before, but now it's one of the emerging methodologies. The medium selected for data transmission is water. Unlike Wi-Fi, here the data will be transmitted without the need of internet and it also opts for wireless connectivity. The present system utilizes Li-Fi with the high complexity circuit, which is very inappropriate in their implementation for underwater communication. Hence, it necessitates the need to develop a system, which can be cost-effective as well as reduced area complexity in the arrangement of such a setup. The main focus of this paper is to bring up an experimental model which could achieve better transmission of Data with cost-effectiveness. The Li-Fi technology for Underwater Communication is proposed to achieve the expected target. The limiting facto with respect to the proposed methodology is that the interference of input light should happen without any disturbance to ensure maximum transmission.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 0.7579,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1109/icces51350.2021.9489200",
+                "url": "https://doi.org/10.1109/icces51350.2021.9489200",
+                "authors": [
+                    {
+                        "display_name": "Vismaya V Nair"
+                    },
+                    {
+                        "display_name": "N Sridhar"
+                    },
+                    {
+                        "display_name": "K Venkateswaran"
+                    }
+                ],
+                "venue": null
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 69.75,
+            "RS_llm": 90.0,
+            "RS_final": 81.9,
+            "label": "relevant",
+            "llm_rationale": "The reference discusses Li-Fi technology for underwater communication, which is directly related to the manuscript's topic.",
+            "llm_evidence": [
+                "Li-Fi (Light Fidelity) was new to everyone a decade before, but now it's one of the emerging methodologies."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Supporting",
+            "quality_flags": [
+                "METADATA MISMATCH",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[2]",
+            "original_data": {
+                "ref_id": "[2]",
+                "parsed": {
+                    "title": "A Review Paper on Underwater Data Transmission Using Li-Fi Technology",
+                    "authors": [
+                        "Amit Deshmukh",
+                        "Abhishek Pawar",
+                        "Roshan Suvarna",
+                        "Sumit Nandkar",
+                        "Archit Devendra"
+                    ],
+                    "year": 2022,
+                    "venue": "YMER",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "not_found",
+            "consistency_status": "Not Checked",
+            "external_metadata": {},
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 60.04,
+            "RS_llm": 60.0,
+            "RS_final": 60.02,
+            "label": "borderline",
+            "llm_rationale": "The reference is a review paper on underwater data transmission using Li-Fi technology, but it lacks an abstract and specific details.",
+            "llm_evidence": [
+                "These studies collectively underscore the potential of optical communication for underwater applications, while identifying key areas for enhancement to achieve higher data rates, reliability, and extended communication range,"
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Background",
+            "quality_flags": [
+                "missing_abstract",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[3]",
+            "original_data": {
+                "ref_id": "[3]",
+                "parsed": {
+                    "title": "5 Mbps Optical Wireless Communication with Error Correction Coding for Underwater Sensor Nodes.",
+                    "authors": [
+                        "Simpson, J. A.",
+                        "Cox, W. C.",
+                        "Krier, J. R.",
+                        "Cochenour, B.",
+                        "Hughes, B. L.",
+                        "Muth, J. F."
+                    ],
+                    "year": 2018,
+                    "venue": "IEEE Conference",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Mismatch Flagged (Year diff: 8)",
+            "external_metadata": {
+                "id": "https://openalex.org/W2054393343",
+                "title": "5 Mbps optical wireless communication with error correction coding for underwater sensor nodes",
+                "year": 2010,
+                "abstract": "One issue with underwater sensors is how to efficiently transfer large amounts of data collected by the node to an interrogating platform such as an underwater vehicle. It is often impractical to make a physical connection between the node and the vehicle which suggests an acoustic or optical wireless solution. For large amounts of data, the high bandwidth of underwater optical wireless is an advantage. A small, low-cost platform to demonstrate the potential of an optical wireless communications interface for underwater sensor nodes is demonstrated. To enhance the reliability and robustness of the optical wireless communication digital signal processing and error correction techniques are used. The system was tested in 3 and 7.7 meter tanks at 5 Mbps with the turbidity of the water controlled by the addition of Maalox.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 0.9947,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1109/oceans.2010.5664429",
+                "url": "https://doi.org/10.1109/oceans.2010.5664429",
+                "authors": [
+                    {
+                        "display_name": "Jim A. Simpson"
+                    },
+                    {
+                        "display_name": "William C. Cox"
+                    },
+                    {
+                        "display_name": "John R. Krier"
+                    },
+                    {
+                        "display_name": "Brandon Cochenour"
+                    },
+                    {
+                        "display_name": "B.L. Hughes"
+                    },
+                    {
+                        "display_name": "John F. Muth"
+                    }
+                ],
+                "venue": null
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 71.58,
+            "RS_llm": 95.0,
+            "RS_final": 85.63,
+            "label": "relevant",
+            "llm_rationale": "The reference presents a 5 Mbps optical wireless communication system with error correction coding, which is relevant to the manuscript's topic of underwater communication.",
+            "llm_evidence": [
+                "A small, low-cost platform to demonstrate the potential of an optical wireless communications interface for underwater sensor nodes is demonstrated."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Supporting",
+            "quality_flags": [
+                "METADATA MISMATCH",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[4]",
+            "original_data": {
+                "ref_id": "[4]",
+                "parsed": {
+                    "title": "Real -Time Audio Transmission Using Visible Light Communication",
+                    "authors": [
+                        "Soh, M. Y.",
+                        "Ng, W. X.",
+                        "Zou, Q.",
+                        "Lee, D.",
+                        "Teo, T. H.",
+                        "Yeo, K. S."
+                    ],
+                    "year": 2018,
+                    "venue": "IEEE Conference",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Match",
+            "external_metadata": {
+                "id": "https://openalex.org/W2919001730",
+                "title": "Real-Time Audio Transmission Using Visible Light Communication",
+                "year": 2018,
+                "abstract": "RF technologies has facilitated communication including audio, images, video and data transmission. However, the RF spectrum is getting increasingly crowded, and alternative methods to transfer data need to be explored. In this paper, software-hardware co-design is implemented to design the audio data synchronization and transmission for an optical-through-air transceiver system. Besides audio transmission, the performance of the VLC system is verified through testing serial data transmission and text transmission. The experimental results show that the VLC system can achieve up to 4 Mb/s data rate using OOK modulation with red light. This system provides a practical step-by-step guidance for setting up a VLC system for data transmission.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 1.0,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1109/tencon.2018.8650145",
+                "url": "https://doi.org/10.1109/tencon.2018.8650145",
+                "authors": [
+                    {
+                        "display_name": "Mei Yu Soh"
+                    },
+                    {
+                        "display_name": "Wen Xian Ng"
+                    },
+                    {
+                        "display_name": "Qiong Zou"
+                    },
+                    {
+                        "display_name": "Denise Lee"
+                    },
+                    {
+                        "display_name": "Tee Hui Teo"
+                    },
+                    {
+                        "display_name": "Kiat Seng Yeo"
+                    }
+                ],
+                "venue": null
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 46.92,
+            "RS_llm": 85.0,
+            "RS_final": 69.77,
+            "label": "borderline",
+            "llm_rationale": "The reference discusses real-time audio transmission using visible light communication, which is related to the manuscript's topic of underwater communication.",
+            "llm_evidence": [
+                "The experimental results show that the VLC system can achieve up to 4 Mb/s data rate using OOK modulation with red light."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Supporting",
+            "quality_flags": [
+                "score_discrepancy",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[5]",
+            "original_data": {
+                "ref_id": "[5]",
+                "parsed": {
+                    "title": "Underwater Communication System for Deep Sea Divers Using Visible Light",
+                    "authors": [
+                        "Das, A. K.",
+                        "Ghosh, A.",
+                        "Vibin, A. M.",
+                        "Prince, S."
+                    ],
+                    "year": 2016,
+                    "venue": "IEEE Conference",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Mismatch Flagged (Year diff: 4)",
+            "external_metadata": {
+                "id": "https://openalex.org/W2020419729",
+                "title": "Underwater communication system for deep sea divers using visible light",
+                "year": 2012,
+                "abstract": "This paper discusses a novel idea for transmission of voices in real time, underwater so that the system can be used by the deep sea divers for both lightning and data transfer applications simultaneously. Experiments were performed using white light, green and blue light respectively to transfer voice in real time in a water tank and the graphs were obtained. Based on the comparison study, we make recommendations for the selection of the right colour of light for communication efficiency in specified underwater environments.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 1.0,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1109/pgc.2012.6458054",
+                "url": "https://doi.org/10.1109/pgc.2012.6458054",
+                "authors": [
+                    {
+                        "display_name": "Ashish Kumar Das"
+                    },
+                    {
+                        "display_name": "Arpita Ghosh"
+                    },
+                    {
+                        "display_name": "A. M. Vibin"
+                    },
+                    {
+                        "display_name": "Shanthi Prince"
+                    }
+                ],
+                "venue": null
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 70.77,
+            "RS_llm": 80.0,
+            "RS_final": 76.31,
+            "label": "relevant",
+            "llm_rationale": "The reference presents a novel idea for transmission of voices in real time, underwater, which is relevant to the manuscript's topic of underwater communication.",
+            "llm_evidence": [
+                "Experiments were performed using white light, green and blue light respectively to transfer voice in real time in a water tank and the graphs were obtained."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Supporting",
+            "quality_flags": [
+                "METADATA MISMATCH",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[6]",
+            "original_data": {
+                "ref_id": "[6]",
+                "parsed": {
+                    "title": "Experimental Demonstration Of 2 -Gbps Underwater Wireless Optical Communication Using SiPM Diversity Reception And Nonlinear Decision Feedback Equa lizer.",
+                    "authors": [
+                        "Xiaojian Hong",
+                        "Ji Du",
+                        "Yuan Wang",
+                        "Ruilin Chen",
+                        "Jiahan Tian",
+                        "Guowu Zhang",
+                        "Junwei Zhang",
+                        "Chao Fei"
+                    ],
+                    "year": 2022,
+                    "venue": "IEEE Access",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "not_found",
+            "consistency_status": "Not Checked",
+            "external_metadata": {},
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 64.57,
+            "RS_llm": 20.0,
+            "RS_final": 37.83,
+            "label": "irrelevant",
+            "llm_rationale": "The reference lacks an abstract and specific details, and its title does not match the manuscript's topic.",
+            "llm_evidence": [
+                "No abstract available"
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Background",
+            "quality_flags": [
+                "low_relevance",
+                "score_discrepancy",
+                "missing_abstract",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[7]",
+            "original_data": {
+                "ref_id": "[7]",
+                "parsed": {
+                    "title": "High Speed Underwater Optical Wireless Communication With Advanced Signal Processing Methods Survey.",
+                    "authors": [
+                        "Chengwei Fang",
+                        "Shuo Li",
+                        "Yinong Wang",
+                        "Ke Wang"
+                    ],
+                    "year": 2023,
+                    "venue": "MDPI , Photonics",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Match",
+            "external_metadata": {
+                "id": "https://openalex.org/W4384131476",
+                "title": "High-Speed Underwater Optical Wireless Communication with Advanced Signal Processing Methods Survey",
+                "year": 2023,
+                "abstract": "Underwater wireless communication (UWC) technology has attracted widespread attention in the past few years. Compared with conventional acoustic underwater wireless communication technology, underwater optical wireless communication (UOWC) technology has promising potential to provide high data rate wireless connections due to the large license-free bandwidth. Building a high-performance and reliable UOWC system has become the target of researchers and various advanced and innovative technologies have been proposed and investigated. Among them, better hardware such as transmitters and receivers, as well as more advanced modulation and signal processing techniques, are key factors in improving UOWC system performance. In this paper, we review the recent development in UOWC systems. In particular, we provide a brief introduction to different types of UOWC systems based on channel configuration, and we focus on various recent studies on advanced signal processing methods in UOWC systems, including both traditional non-machine learning (NML) equalizers and machine learning (ML) schemes based on neural networks. In addition, we also discuss the key challenges in UOWC systems for future applications.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 1.0,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.3390/photonics10070811",
+                "url": "https://doi.org/10.3390/photonics10070811",
+                "authors": [
+                    {
+                        "display_name": "Chengwei Fang"
+                    },
+                    {
+                        "display_name": "Shuo Li"
+                    },
+                    {
+                        "display_name": "Yinong Wang"
+                    },
+                    {
+                        "display_name": "Ke Wang"
+                    }
+                ],
+                "venue": "Photonics"
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 59.86,
+            "RS_llm": 40.0,
+            "RS_final": 47.94,
+            "label": "borderline",
+            "llm_rationale": "The reference is a survey paper on high-speed underwater optical wireless communication, but it lacks specific details and is not directly related to the manuscript's topic.",
+            "llm_evidence": [
+                "In this paper, we review the recent development in UOWC systems."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Background",
+            "quality_flags": [
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[9]",
+            "original_data": {
+                "ref_id": "[9]",
+                "parsed": {
+                    "title": "Underwater Visible Light Communication : Recent Advancements And Channel Modelling",
+                    "authors": [
+                        "Aly"
+                    ],
+                    "year": 2024,
+                    "venue": "Springer",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Match",
+            "external_metadata": {
+                "id": "https://openalex.org/W4402731658",
+                "title": "Underwater visible light communication: recent advancements and channel modeling",
+                "year": 2024,
+                "abstract": null,
+                "is_scraped": false,
+                "abstract_source": null,
+                "match_confidence": 1.0,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1007/s11082-024-07426-z",
+                "url": "https://doi.org/10.1007/s11082-024-07426-z",
+                "authors": [
+                    {
+                        "display_name": "Abdelrahman Elfikky"
+                    },
+                    {
+                        "display_name": "Ayman I. Boghdady"
+                    },
+                    {
+                        "display_name": "Sajid Mumtaz"
+                    },
+                    {
+                        "display_name": "Ebrahim E. Elsayed"
+                    },
+                    {
+                        "display_name": "Mehtab Singh"
+                    },
+                    {
+                        "display_name": "Somia A. Abd El-Mottaleb"
+                    },
+                    {
+                        "display_name": "Syed Agha Hassnain Mohsan"
+                    },
+                    {
+                        "display_name": "Moustafa H. Aly"
+                    }
+                ],
+                "venue": "Optical and Quantum Electronics"
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 69.96,
+            "RS_llm": 50.0,
+            "RS_final": 57.98,
+            "label": "borderline",
+            "llm_rationale": "The reference is a letter on experimental demonstration of underwater optical wireless communication, but it lacks specific details and is not directly related to the manuscript's topic.",
+            "llm_evidence": [
+                "Experimental results show that the data rates of 20 Mbps, 40 Mbps, 80 Mbps and 100 Mbps can be achieved under 14.3 AL, 13.2 AL, 13.2 AL and 12.3 AL with bit error rates (BERs) lower than the forward error correction (FEC) limit."
+            ],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Background",
+            "quality_flags": [
+                "missing_abstract",
+                "MISSING DOI"
+            ],
+            "scoring_status": "complete"
+        },
+        {
+            "ref_id": "[10]",
+            "original_data": {
+                "ref_id": "[10]",
+                "parsed": {
+                    "title": "Experimental Demonstration Of Underwater Optical Wireless Communication",
+                    "authors": [
+                        "Kashan Iqbal",
+                        "Nadia Mustaqim Ansari",
+                        "Rizwan Iqbal",
+                        "Sohail Rana"
+                    ],
+                    "year": 2022,
+                    "venue": "Journal Of Xi\u2019an Shiyou University",
+                    "doi": null
+                }
+            },
+            "enrichment_status": "success",
+            "consistency_status": "Acceptable Variance (\u00b11 Year)",
+            "external_metadata": {
+                "id": "https://openalex.org/W3120808962",
+                "title": "Experimental Demonstration of Over 14 AL Underwater Wireless Optical Communication",
+                "year": 2021,
+                "abstract": "Turbidity of water significantly affect the system performance of underwater wireless optical communication (UWOC). In this letter, we proposed and experimentally demonstrated a loss-tolerant UWOC system using a compact high-power 520-nm laser diode (LD) and a highly sensitive silicon photomultiplier (SiPM). The LD is directly modulated by the on-off keying-non-return-to-zero (OOK-NRZ) data. A precise collimation system is designed in the transmitter so that the maximum beam divergence angle is fixed at 0.75 mrad. The performance of the proposed system is investigated over a 24-m underwater channel with different attenuation lengths (ALs) mimicking the different levels of water turbidity in coastal water. Experimental results show that the data rates of 20 Mbps, 40 Mbps, 80 Mbps and 100 Mbps can be achieved under 14.3 AL, 13.2 AL, 13.2 AL and 12.3 AL with bit error rates (BERs) lower than the forward error correction (FEC) limit.",
+                "is_scraped": false,
+                "abstract_source": "openalex",
+                "match_confidence": 0.8535,
+                "match_method": "title_year_ranked",
+                "doi": "https://doi.org/10.1109/lpt.2020.3048786",
+                "url": "https://doi.org/10.1109/lpt.2020.3048786",
+                "authors": [
+                    {
+                        "display_name": "Zhen Chen"
+                    },
+                    {
+                        "display_name": "Xinke Tang"
+                    },
+                    {
+                        "display_name": "Caiming Sun"
+                    },
+                    {
+                        "display_name": "Zhong\u2010Yi Li"
+                    },
+                    {
+                        "display_name": "Wu Shi"
+                    },
+                    {
+                        "display_name": "Hongjie Wang"
+                    },
+                    {
+                        "display_name": "Long Zhang"
+                    },
+                    {
+                        "display_name": "Aidong Zhang"
+                    }
+                ],
+                "venue": "IEEE Photonics Technology Letters"
+            },
+            "self_citation": {
+                "is_self_cite": false,
+                "overlap_type": "none",
+                "matching_authors": [],
+                "overlap_percentage": 0.0,
+                "venue_overlap": false,
+                "method": "last_name_overlap"
+            },
+            "RS_embed": 78.43,
+            "RS_llm": null,
+            "RS_final": null,
+            "label": "unavailable",
+            "llm_rationale": "LLM judgment unavailable; no relevance decision was produced.",
+            "llm_evidence": [],
+            "llm_evidence_status": "model_generated_unverified",
+            "citation_intent": "Unclassified",
+            "quality_flags": [
+                "llm_judgment_unavailable",
+                "MISSING DOI"
+            ],
+            "scoring_status": "unavailable"
+        }
+    ],
+    "scoring_metadata": {
+        "embedding_model": "all-MiniLM-L6-v2",
+        "llm_model": "meta-llama/Llama-3.1-8B-Instruct",
+        "embedding_weight": 0.4,
+        "llm_weight": 0.6,
+        "relevant_threshold": 70,
+        "borderline_threshold": 40,
+        "method_version": "hybrid-v2",
+        "prompt_version": "relevance-batch-v2",
+        "generated_at": "2026-09-08T17:58:09.221822+00:00"
+    },
+    "scoring_summary": {
+        "total_references": 9,
+        "self_citations": 0,
+        "low_relevance": 1,
+        "self_citation_rate": "0.0%",
+        "scores_unavailable": 1
+    },
+    "reference_risk_summary": {
+        "risk_level": "Incomplete",
+        "risk_score": null,
+        "message": "One or more references lack a valid score; review priority was not calculated.",
+        "classification": "editorial_review_priority",
+        "counts": {
+            "total_references": 9,
+            "weak_or_irrelevant": 1,
+            "borderline": 4,
+            "self_citations": 0,
+            "missing_doi": 2,
+            "missing_abstract": 3,
+            "outdated_references": 1,
+            "metadata_mismatches": 3
+        },
+        "rates": {
+            "weak_or_irrelevant_rate": 0.111,
+            "borderline_rate": 0.444,
+            "missing_doi_rate": 0.222,
+            "missing_abstract_rate": 0.333,
+            "outdated_reference_rate": 0.111,
+            "metadata_mismatch_rate": 0.333
+        },
+        "coverage": {
+            "scored_references": 8,
+            "total_references": 9,
+            "complete": false
+        },
+        "methodology": {
+            "version": "review-priority-v2",
+            "calibrated": false,
+            "intended_use": "prototype editorial triage only"
+        },
+        "top_issues": [
+            {
+                "issue": "Borderline citations",
+                "count": 4
+            },
+            {
+                "issue": "Missing abstract",
+                "count": 3
+            },
+            {
+                "issue": "Metadata mismatches",
+                "count": 3
+            },
+            {
+                "issue": "Missing DOI",
+                "count": 2
+            },
+            {
+                "issue": "Weak or irrelevant citations",
+                "count": 1
+            }
+        ],
+        "flagged_references": [
+            {
+                "ref_id": "[1]",
+                "title": "Li -Fi Based Underwater Communication",
+                "score": 81.9,
+                "issues": [
+                    "metadata_mismatch"
+                ]
+            },
+            {
+                "ref_id": "[2]",
+                "title": "A Review Paper on Underwater Data Transmission Using Li-Fi Technology",
+                "score": 60.02,
+                "issues": [
+                    "borderline",
+                    "missing_doi",
+                    "missing_abstract"
+                ]
+            },
+            {
+                "ref_id": "[3]",
+                "title": "5 Mbps Optical Wireless Communication with Error Correction Coding for Underwater Sensor Nodes.",
+                "score": 85.63,
+                "issues": [
+                    "outdated_reference",
+                    "metadata_mismatch"
+                ]
+            },
+            {
+                "ref_id": "[4]",
+                "title": "Real -Time Audio Transmission Using Visible Light Communication",
+                "score": 69.77,
+                "issues": [
+                    "borderline"
+                ]
+            },
+            {
+                "ref_id": "[5]",
+                "title": "Underwater Communication System for Deep Sea Divers Using Visible Light",
+                "score": 76.31,
+                "issues": [
+                    "metadata_mismatch"
+                ]
+            },
+            {
+                "ref_id": "[6]",
+                "title": "Experimental Demonstration Of 2 -Gbps Underwater Wireless Optical Communication Using SiPM Diversity Reception And Nonlinear Decision Feedback Equa lizer.",
+                "score": 37.83,
+                "issues": [
+                    "weak_or_irrelevant",
+                    "missing_doi",
+                    "missing_abstract"
+                ]
+            },
+            {
+                "ref_id": "[7]",
+                "title": "High Speed Underwater Optical Wireless Communication With Advanced Signal Processing Methods Survey.",
+                "score": 47.94,
+                "issues": [
+                    "borderline"
+                ]
+            },
+            {
+                "ref_id": "[9]",
+                "title": "Underwater Visible Light Communication : Recent Advancements And Channel Modelling",
+                "score": 57.98,
+                "issues": [
+                    "borderline",
+                    "missing_abstract"
+                ]
+            }
+        ],
+        "source_list": "scored_references",
+        "generated_at": "2026-09-08T17:58:09+00:00"
+    }
+}

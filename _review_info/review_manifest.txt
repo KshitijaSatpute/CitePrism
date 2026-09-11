@@ -1,0 +1,171 @@
+CITEPRISM REVIEW MANIFEST
+Generated UTC: 2026-09-06T10:03:11.368811+00:00
+Project folder name: Citeprism
+Operating system: Windows-10-10.0.26200-SP0
+Python: 3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]
+Maximum copied file size: 8 MB
+
+SECURITY/PRIVACY EXCLUSIONS
+- Environment-secret files and keys/certificates
+- Virtual environments and dependency caches
+- Git object database
+- Raw/derived research data and PDFs
+- Database rows, logs, model weights, and build outputs
+
+INSTALLED PYTHON PACKAGES (name/version only)
+accelerate==1.14.0
+aiohappyeyeballs==2.6.2
+aiohttp==3.14.1
+aiosignal==1.4.0
+annotated-doc==0.0.4
+annotated-types==0.7.0
+anyio==4.14.0
+asttokens==3.0.2
+attrs==26.1.0
+certifi==2026.6.17
+charset-normalizer==3.4.7
+click==8.4.1
+colorama==0.4.6
+comm==0.2.3
+debugpy==1.8.21
+decorator==5.3.1
+executing==2.2.1
+faiss-cpu==1.14.3
+filelock==3.29.4
+frozenlist==1.8.0
+fsspec==2026.6.0
+greenlet==3.5.2
+h11==0.16.0
+hf-xet==1.5.1
+httpcore==1.0.9
+httpx==0.28.1
+httpx-sse==0.4.3
+huggingface_hub==1.20.1
+idna==3.18
+ipykernel==7.3.0
+ipython==9.15.0
+ipython_pygments_lexers==1.1.1
+jedi==0.20.0
+Jinja2==3.1.6
+joblib==1.5.3
+jsonpatch==1.33
+jsonpointer==3.1.1
+jupyter_client==8.9.1
+jupyter_core==5.9.1
+langchain==1.3.10
+langchain-classic==1.0.8
+langchain-community==0.4.2
+langchain-core==1.4.8
+langchain-huggingface==1.2.2
+langchain-protocol==0.0.18
+langchain-text-splitters==1.1.2
+langgraph==1.2.6
+langgraph-checkpoint==4.1.1
+langgraph-prebuilt==1.1.0
+langgraph-sdk==0.4.2
+langsmith==0.8.18
+markdown-it-py==4.2.0
+MarkupSafe==3.0.3
+matplotlib-inline==0.2.2
+mdurl==0.1.2
+mpmath==1.3.0
+multidict==6.7.1
+narwhals==2.22.1
+nest-asyncio2==1.7.2
+networkx==3.6.1
+numpy==2.4.6
+orjson==3.11.9
+ormsgpack==1.12.2
+packaging==26.2
+parso==0.8.7
+pip==26.1.2
+platformdirs==4.11.0
+prompt_toolkit==3.0.52
+propcache==0.5.2
+psutil==7.2.2
+pure_eval==0.2.3
+pydantic==2.13.4
+pydantic_core==2.46.4
+pydantic-settings==2.14.2
+Pygments==2.20.0
+pypdf==6.13.3
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pyzmq==27.1.0
+regex==2026.5.9
+requests==2.34.2
+requests-toolbelt==1.0.0
+rich==15.0.0
+safetensors==0.8.0
+scikit-learn==1.9.0
+scipy==1.17.1
+sentence-transformers==5.6.0
+setuptools==65.5.0
+shellingham==1.5.4
+six==1.17.0
+SQLAlchemy==2.0.51
+stack-data==0.6.3
+sympy==1.14.0
+tenacity==9.1.4
+threadpoolctl==3.6.0
+tokenizers==0.22.2
+torch==2.12.1
+tornado==6.5.7
+tqdm==4.68.3
+traitlets==5.15.1
+transformers==5.12.1
+typer==0.25.1
+typing_extensions==4.15.0
+typing-inspection==0.4.2
+urllib3==2.7.0
+uuid_utils==0.16.2
+wcwidth==0.8.2
+websockets==15.0.1
+xxhash==3.7.0
+yarl==1.24.2
+zstandard==0.25.0
+
+GIT STATE
+Branch: feat/refernce_risk
+HEAD: bcf39444c5b8fe5fead212e39d53ea8aaf22c0d3
+
+Status:
+## feat/refernce_risk...origin/feat/refernce_risk
+
+Local and remote branches:
+* feat/refernce_risk
+  remotes/origin/feat/refernce_risk
+
+Recent commits (hash, UTC date, subject; no author email):
+bcf3944 2026-07-27T13:25:20+02:00 Final changes
+a02a25f 2026-07-27T13:08:05+02:00 Initial Reference Risk score
+17eb8f0 2026-06-13T01:55:26+02:00 Merge pull request #10 from DevaGhawat/docs-update-recent-improvements
+a3858a1 2026-06-13T01:54:49+02:00 Document recent CitePrism improvements
+8273673 2026-06-13T01:51:09+02:00 Merge pull request #9 from DevaGhawat/fix-runtime-enrichment-timing
+2c23d7e 2026-06-13T01:50:23+02:00 Fix enrichment timing in runtime summary
+4df4411 2026-06-08T17:13:42+02:00 Merge pull request #8 from DevaGhawat/feature-ranked-citation-review-table
+c8e6b0f 2026-06-08T17:13:02+02:00 Add ranked citation review table
+f025142 2026-06-08T15:17:15+02:00 Merge pull request #7 from DevaGhawat/feature-clean-ui-logs
+eedfce3 2026-06-08T15:16:36+02:00 Clean noisy logs from upload UI
+7a45fc8 2026-06-08T15:10:15+02:00 Merge pull request #6 from DevaGhawat/feature-medium-pdf-chunked-parsing
+e4af35f 2026-06-08T15:09:33+02:00 Use chunked parsing for medium PDFs
+366d5c1 2026-06-08T14:21:08+02:00 Merge pull request #5 from DevaGhawat/feature-robust-gemini-json-parsing
+50e42dc 2026-06-08T14:20:27+02:00 Improve Gemini JSON response parsing
+cf62584 2026-06-08T14:04:13+02:00 Merge pull request #4 from DevaGhawat/feature-pdf-viewer-fallback
+4847d6a 2026-06-08T14:02:40+02:00 Add PDF viewer download fallback
+ef57a81 2026-06-08T13:38:55+02:00 Merge pull request #3 from DevaGhawat/feature-runtime-metrics-ui
+3a72580 2026-06-08T13:38:02+02:00 Display runtime metrics in upload UI
+32fc638 2026-06-08T01:38:10+02:00 Merge pull request #2 from DevaGhawat/feature-optional-missing-citations
+971ba2c 2026-06-08T01:37:22+02:00 Make missing citation generation optional
+ac7ed18 2026-06-08T00:43:47+02:00 Merge pull request #1 from DevaGhawat/feature-performance-cache
+48b64f3 2026-06-06T02:22:08+02:00 Cache SentenceTransformer model loading
+e88ed67 2026-06-06T01:24:04+02:00 Initialize CitePrism V2 with runtime profiling
+
+Uncommitted change summary:
+
+Staged change summary:
+
+Remotes (embedded credentials and URL queries redacted):
+origin https://github.com/DevaGhawat/CitePrism_V2.git
+

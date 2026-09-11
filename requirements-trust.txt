@@ -1,0 +1,8 @@
+# Minimal Phase 1 tests/CLI. Does not install the full Streamlit/model stack.
+numpy>=2.0,<3
+pydantic>=2.9,<3
+python-dotenv>=1,<2
+psycopg[binary]>=3.2,<4
+boto3>=1.36,<2
+setuptools>=75
+wheel

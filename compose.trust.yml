@@ -1,0 +1,21 @@
+name: citeprism-trust-dev
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: citeprism_trust_dev
+      POSTGRES_USER: citeprism_admin
+      POSTGRES_PASSWORD: citeprism-admin-dev-only
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - trust_pgdata:/var/lib/postgresql/data
+      - ./database/dev_init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citeprism_admin -d citeprism_trust_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: "no"
+volumes:
+  trust_pgdata:
