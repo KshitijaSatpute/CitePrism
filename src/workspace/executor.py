@@ -15,6 +15,7 @@ reviewer's time and the provider budget.
 from __future__ import annotations
 
 import json
+import re
 import logging
 from pathlib import Path
 
@@ -112,6 +113,7 @@ class AuditExecutor:
                     force_score=bool(options.get("force_score")),
                     run_missing_citations=bool(options.get("run_missing_citations")),
                     original_filename=request.get("original_filename"),
+                    author_orcids=list(options.get("author_orcids") or []),
                 )
 
             if not result.get("success"):
@@ -122,8 +124,20 @@ class AuditExecutor:
             if not artifact_path:
                 raise RuntimeError("the completed pipeline did not publish an evidence artifact")
 
+            # The pipeline names its scored file after the document, so a later audit of the
+            # same paper rewrites it. Each audit keeps its own copy: an earlier audit must go on
+            # showing the results it produced, and its decisions must stay attached to them.
+            artifact_path = self._snapshot_artifact(tenant_id, str(job["audit_id"]), artifact_path)
             artifact = json.loads(Path(artifact_path).read_text(encoding="utf-8"))
-            summary = build_review(artifact)["counts"]
+            projection = build_review(artifact)
+            summary = dict(projection["counts"])
+            # Which findings need a person's decision, so the library can count the
+            # ones still open without rebuilding every review.
+            attention = {finding["id"]: finding["reference_id"] for finding in projection["findings"]
+                         if finding.get("reference_id") and finding["priority"] != "informational"
+                         and not finding.get("system_issue")}
+            summary["attention_finding_ids"] = sorted(attention)
+            summary["attention_findings"] = attention        # finding id -> reference id
 
             self._record_telemetry(recorder, result, artifact, summary)
             artifact_key = self._publish_artifact(tenant_id, artifact_path, artifact)
@@ -191,6 +205,25 @@ class AuditExecutor:
                 continue
         recorder.record_provider_calls(artifact.get("provider_runs") or [])
         recorder.add(_quality_event(summary))
+
+    def _snapshot_artifact(self, tenant_id: str, audit_id: str, artifact_path: str) -> str:
+        """An immutable per-audit copy of the scored artifact, next to the pipeline's data folders."""
+        try:
+            import uuid
+            source = Path(artifact_path).resolve()
+
+            def safe(value) -> str:
+                name = re.sub(r"[^A-Za-z0-9_-]", "_", str(value))[:120]   # no dots: never "." or ".."
+                return name or "_"
+            target = source.parent.parent / "audit_artifacts" / safe(tenant_id) / f"{safe(audit_id)}.json"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")   # one per worker
+            temporary.write_bytes(source.read_bytes())
+            temporary.replace(target)
+            return str(target)
+        except OSError:
+            logger.exception("Could not keep a per-audit copy of the artifact; using the shared file.")
+            return artifact_path
 
     def _publish_artifact(self, tenant_id: str, artifact_path: str, artifact: dict) -> str | None:
         """Copy the evidence artifact into object storage when one is configured."""

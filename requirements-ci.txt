@@ -1,0 +1,2 @@
+# Test-only dependencies for CI. The runtime set lives in requirements-phase4.txt.
+httpx>=0.28,<1

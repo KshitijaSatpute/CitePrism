@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import copy
+
 import json
 import re
 import tempfile
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -117,7 +120,11 @@ class WorkspaceService:
             legacy_id, _ = self.legacy_db.register_pdf(
                 destination, original_filename=original_filename
             )
-        display_name = Path(str(original_filename).replace("\\", "/")).name[:500]
+        # Shown in the library and in reports: no control characters, invisible
+        # characters or bidirectional overrides ("invoice\u202efdp.exe").
+        cleaned_name = re.sub(r"[\x00-\x1f\x7f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]", "",
+                              str(original_filename))
+        display_name = Path(cleaned_name.replace("\\", "/")).name[:500]
         if not display_name or display_name in {".", ".."}:
             display_name = "manuscript.pdf"
         display_title = (
@@ -163,12 +170,34 @@ class WorkspaceService:
             if raw.get("latest_audit_id"):
                 summary = self.store.get_audit(tenant_id, raw["latest_audit_id"])
                 counts = decode(summary.get("summary_json"), {})
-                row["open_findings"] = max(
-                    0,
-                    int(counts.get("references_to_review", 0)) - int(raw.get("decision_count", 0)),
-                )
+                row["open_findings"] = self._open_references(tenant_id, raw["latest_audit_id"], counts, raw)
             result.append(Manuscript.model_validate(row))
         return result
+
+    def _open_references(self, tenant_id: str, audit_id: str, counts: dict, raw: dict) -> int:
+        """References that still have an undecided item a person should look at.
+
+        Superseded decisions, decisions on notes for information and repeated
+        decisions on one finding never reduce the count.
+        """
+        mapping = counts.get("attention_findings")
+        if isinstance(mapping, dict):
+            decided = set(self.store.latest_decisions(tenant_id, audit_id))
+            return len({reference for finding, reference in mapping.items() if finding not in decided})
+        ids = counts.get("attention_finding_ids")
+        if isinstance(ids, list):
+            decided = set(self.store.latest_decisions(tenant_id, audit_id))
+            open_ids = set(ids) - decided
+            if not open_ids:
+                return 0
+            try:
+                review = self.review(tenant_id, audit_id)
+            except Exception:  # noqa: BLE001 - an unreadable artifact still gets a count
+                return len(open_ids)
+            return len({finding["reference_id"] for finding in review["findings"] if finding["id"] in open_ids})
+        # Audits from before 5.4 lack the finding ids: an approximation, never negative.
+        attention = counts.get("attention_references", counts.get("references_to_review", 0))
+        return max(0, int(attention) - int(raw.get("decision_count", 0)))
 
     def get_manuscript(self, tenant_id: str, manuscript_id: str) -> Manuscript:
         row = hydrate_manuscript(self.store.get_manuscript(tenant_id, manuscript_id))
@@ -219,9 +248,31 @@ class WorkspaceService:
             raise ArtifactError("the evidence artifact has an invalid root")
         return payload
 
+    def _projection(self, tenant_id: str, audit_id: str) -> dict[str, Any]:
+        """The review built from an audit's artifact, cached while the artifact file is unchanged;
+        decisions and corrections are merged on every call."""
+        cache = self.__dict__.setdefault("_projections", {})
+        lock = self.__dict__.setdefault("_projections_lock", threading.Lock())
+        # Keyed on the file's state too: audits from before 5.4 share one file per document,
+        # which a later audit of the same paper rewrites.
+        try:
+            stat = Path(self.store.get_audit(tenant_id, audit_id).get("artifact_path") or "").stat()
+            version = (stat.st_size, stat.st_mtime_ns)
+        except (OSError, TypeError, ValueError):
+            version = None
+        key = (tenant_id, audit_id, version)
+        with lock:
+            cached = cache.get(key)
+        if cached is None:
+            cached = build_review(self.load_artifact(tenant_id, audit_id))
+            with lock:
+                while len(cache) >= 32:
+                    cache.pop(next(iter(cache)), None)
+                cache[key] = cached
+        return copy.deepcopy(cached)
+
     def review(self, tenant_id: str, audit_id: str) -> dict[str, Any]:
-        artifact = self.load_artifact(tenant_id, audit_id)
-        review = build_review(artifact)
+        review = self._projection(tenant_id, audit_id)
         decisions = self.store.latest_decisions(tenant_id, audit_id)
         corrections = [
             hydrate_correction(row) for row in self.store.list_corrections(tenant_id, audit_id)

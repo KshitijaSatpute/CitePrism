@@ -75,7 +75,7 @@ class WorkspaceTests(unittest.TestCase):
         self.store = WorkspaceStore(self.root / "workspace.db")
         self.service = WorkspaceService(self.store, data_root=self.root / "data")
         self.pdf = self.root / "paper.pdf"
-        self.pdf.write_bytes(b"%PDF-1.7\nminimal test document")
+        self.pdf.write_bytes(b"%PDF-1.7\nminimal test document\n%%EOF\n")
 
     def tearDown(self):
         self.temp.cleanup()
@@ -150,6 +150,35 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual(final.progress, 100)
         self.assertEqual(finished.state.value, "completed_with_issues")
         self.assertEqual(self.service.review(TENANT_A, audit.id)["counts"]["grounded_proposals"], 1)
+
+    def test_a_later_audit_of_the_same_paper_leaves_the_earlier_results_alone(self):
+        # The pipeline writes one scored file per document; each audit must keep its own copy.
+        manuscript = self.manuscript()
+        output = self.root / "data" / "scored" / "same_document.json"
+        output.parent.mkdir(parents=True, exist_ok=True)
+        first, job = self.service.create_audit(TENANT_A, manuscript.id, AuditOptions(), "operator")
+        runner = AuditJobRunner(self.store, FakePipeline(output), max_workers=1)
+        runner.submit(TENANT_A, job.id)
+        runner.shutdown()
+        before = self.service.review(TENANT_A, first.id)
+        stored = self.service.get_audit(TENANT_A, first.id).artifact_path
+        self.assertIn("audit_artifacts", stored)
+        self.assertNotEqual(Path(stored).resolve(), output.resolve())
+
+        class ChangedPipeline(FakePipeline):
+            def process_document(self, path, progress_bar=None, **options):
+                result = super().process_document(path, progress_bar, **options)
+                data = json.loads(self.output.read_text(encoding="utf-8"))
+                data["scored_references"][0]["original_data"]["parsed"]["title"] = "A different later result"
+                self.output.write_text(json.dumps(data), encoding="utf-8")
+                return result
+
+        second, job = self.service.create_audit(TENANT_A, manuscript.id, AuditOptions(), "operator")
+        runner = AuditJobRunner(self.store, ChangedPipeline(output), max_workers=1)
+        runner.submit(TENANT_A, job.id)
+        runner.shutdown()
+        self.assertEqual(self.service.review(TENANT_A, first.id), before)
+        self.assertNotEqual(self.service.get_audit(TENANT_A, second.id).artifact_path, stored)
 
     def test_decisions_are_idempotent_append_only_and_optimistic(self):
         _manuscript, audit, _job = self.complete_audit()

@@ -1,0 +1,7 @@
+# Text files are stored with LF line endings. Shell scripts must keep LF on every
+# platform (a Windows checkout with CRLF breaks them); PDFs and images are binary.
+* text=auto
+*.sh text eol=lf
+*.pdf binary
+*.png binary
+*.jpg binary

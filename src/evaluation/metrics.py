@@ -179,7 +179,136 @@ def agreement(pairs: list[tuple[str, str]]) -> dict:
     }
 
 
+def auroc(pairs: list[tuple[float, bool]]) -> float | None:
+    """Area under the ROC curve via the Mann-Whitney U statistic (ties count half).
+
+    Threshold-free: how often a positive example outscores a negative one.
+    Returns None when either class is absent, because the area is undefined.
+    """
+    positives = [score for score, label in pairs if label]
+    negatives = [score for score, label in pairs if not label]
+    if not positives or not negatives:
+        return None
+    ranked = sorted([(score, 1) for score in positives] + [(score, 0) for score in negatives])
+    rank_sum, index = 0.0, 0
+    while index < len(ranked):
+        end = index
+        while end + 1 < len(ranked) and ranked[end + 1][0] == ranked[index][0]:
+            end += 1
+        average_rank = (index + end) / 2 + 1
+        rank_sum += average_rank * sum(1 for item in ranked[index:end + 1] if item[1])
+        index = end + 1
+    u = rank_sum - len(positives) * (len(positives) + 1) / 2
+    return round(u / (len(positives) * len(negatives)), 4)
+
+
+def threshold_sweep(pairs: list[tuple[float, bool]], *, lower_is_positive: bool = True) -> dict:
+    """Find the cut-off that maximizes F1 for a score-based detector.
+
+    With `lower_is_positive` a reference is flagged when its score is *below*
+    the threshold — the shape of "potentially irrelevant if RS_final < t".
+    """
+    if not pairs:
+        return {"samples": 0, "best": None, "curve": []}
+    candidates = sorted({round(score, 2) for score, _ in pairs})
+    candidates.append(candidates[-1] + 0.01)
+    curve = []
+    for threshold in candidates:
+        predicted = [(label, (score < threshold) if lower_is_positive else (score >= threshold))
+                     for score, label in pairs]
+        report = binary_report(predicted)
+        curve.append({"threshold": threshold, "precision": report["precision"],
+                      "recall": report["recall"], "f1": report["f1"]})
+    best = max(curve, key=lambda row: (row["f1"], row["precision"]))
+    return {"samples": len(pairs), "best": best, "curve": curve,
+            "direction": "flag_below" if lower_is_positive else "flag_at_or_above"}
+
+
+def cross_validated_threshold(groups: list[list[tuple[float, bool]]], *, folds: int = 5,
+                              seed: int = 20260101, lower_is_positive: bool = True) -> dict | None:
+    """Choose a cut-off without grading it on the data that chose it.
+
+    `groups` holds one list of (score, label) pairs per manuscript. Manuscripts
+    are dealt into folds; for each fold the F1-optimal threshold is found on the
+    other folds and applied to the held-out one. Pooling the held-out decisions
+    gives an honest estimate of how the tuned threshold performs on unseen
+    papers. The threshold to deploy is then tuned on all data, and the spread of
+    per-fold thresholds shows how stable that choice is.
+    """
+    import random
+
+    groups = [group for group in groups if group]
+    if len(groups) < 2:
+        return None
+    folds = max(2, min(folds, len(groups)))
+    order = list(range(len(groups)))
+    random.Random(seed).shuffle(order)
+    assignment = {index: position % folds for position, index in enumerate(order)}
+    held_out_decisions: list[tuple[bool, bool]] = []
+    per_fold = []
+    for fold in range(folds):
+        train = [pair for index, group in enumerate(groups) if assignment[index] != fold for pair in group]
+        test = [pair for index, group in enumerate(groups) if assignment[index] == fold for pair in group]
+        if not train or not test:
+            continue
+        best = threshold_sweep(train, lower_is_positive=lower_is_positive)["best"]
+        if best is None:
+            continue
+        cut = best["threshold"]
+        decisions = [(label, (score < cut) if lower_is_positive else (score >= cut)) for score, label in test]
+        held_out_decisions.extend(decisions)
+        per_fold.append({"fold": fold, "threshold": cut, "held_out": binary_report(decisions)})
+    if not per_fold:
+        return None
+    final = threshold_sweep([pair for group in groups for pair in group], lower_is_positive=lower_is_positive)["best"]
+    cuts = [row["threshold"] for row in per_fold]
+    pooled = binary_report(held_out_decisions)
+    return {
+        "folds": len(per_fold),
+        "manuscripts": len(groups),
+        "held_out": {key: pooled[key] for key in ("samples", "precision", "recall", "f1")},
+        "recommended_threshold": final["threshold"] if final else None,
+        "in_sample_f1": final["f1"] if final else None,
+        "fold_thresholds": {"min": min(cuts), "max": max(cuts), "values": cuts},
+        "per_fold": per_fold,
+        "note": "Held-out F1 is the figure to report; in-sample F1 is optimistic by construction.",
+    }
+
+
+def bootstrap_interval(groups: list, statistic, *, resamples: int = 1000, seed: int = 20260101,
+                       confidence: float = 0.95) -> dict | None:
+    """Percentile bootstrap over *groups* (manuscripts), not individual references.
+
+    References within one manuscript are correlated; resampling them
+    independently would report intervals that are too narrow. Resampling whole
+    manuscripts respects that structure. Deterministic for a given seed.
+    """
+    import random
+
+    if len(groups) < 2:
+        return None
+    rng = random.Random(seed)
+    point = statistic(groups)
+    values = []
+    for _ in range(max(100, resamples)):
+        sample = [groups[rng.randrange(len(groups))] for _ in groups]
+        value = statistic(sample)
+        if value is not None:
+            values.append(value)
+    if not values:
+        return None
+    values.sort()
+    tail = (1 - confidence) / 2
+    low = values[int(tail * (len(values) - 1))]
+    high = values[int((1 - tail) * (len(values) - 1))]
+    return {"point": point, "low": round(low, 4), "high": round(high, 4),
+            "confidence": confidence, "resamples": len(values), "unit": "manuscript"}
+
+
 __all__ = [
+    "auroc",
+    "bootstrap_interval",
+    "threshold_sweep",
     "ClassMetrics",
     "agreement",
     "binary_report",

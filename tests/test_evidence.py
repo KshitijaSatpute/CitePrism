@@ -89,7 +89,12 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(attempted)
         for ref in attempted:
             self.assertEqual(ref['evidence_status'], 'grounding_failed')
-            self.assertIsNone(ref['RS_final'])
+            # An ungrounded answer contributes nothing to relevance. Topic
+            # similarity may still exist, but it can never yield a support or
+            # irrelevance verdict on its own.
+            self.assertIsNone(ref['RS_llm'])
+            self.assertIn(ref['relevance']['basis'], {'embedding_only', 'none'})
+            self.assertNotEqual(ref['relevance']['label'], 'potentially_irrelevant')
             self.assertEqual(ref['llm_evidence'], [])
 
     def test_duplicate_and_missing_task_ids_are_not_counted_as_success(self):
@@ -205,7 +210,8 @@ class EvidenceTests(unittest.TestCase):
         from src.enrichers.openalex_enricher import OpenAlexEnricher
         config = SimpleNamespace(DATA_DIR=self.root, RAW_PDFS_DIR=self.root/'raw',
             PARSED_DIR=self.root/'parsed', ENRICHED_DIR=self.root/'enriched', SCORED_DIR=self.root/'scored',
-            MAX_PDF_BYTES=2*1024**2, HF_BATCH_SIZE=5, LLM_PROVIDER='google', GOOGLE_MODEL='fixture-model')
+            MAX_PDF_BYTES=2*1024**2, HF_BATCH_SIZE=5, LLM_PROVIDER='google', GOOGLE_MODEL='fixture-model',
+            ENABLE_GAP_ANALYSIS=False)
         db = DatabaseManager(self.root/'workflow.db')
         kernel = make_kernel(self.root, InMemoryTrustRepository())
         pipeline = PipelineOrchestrator(db, config, trust_kernel=kernel)

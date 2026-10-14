@@ -226,7 +226,10 @@ def create_app(
         require_role(user, "operator")
         content = await file.read(Config.MAX_PDF_BYTES + 1)
         try:
-            manuscript, created = service.register_bytes(
+            # Hashing and writing a large PDF blocks; keep it off the event loop.
+            from starlette.concurrency import run_in_threadpool
+            manuscript, created = await run_in_threadpool(
+                service.register_bytes,
                 user.tenant_id,
                 content,
                 original_filename=file.filename or "manuscript.pdf",

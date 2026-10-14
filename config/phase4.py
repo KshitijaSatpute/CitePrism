@@ -128,12 +128,25 @@ class Phase4Settings:
     RESOLUTION_PROVIDERS: tuple[str, ...] = _csv(
         "CITEPRISM_RESOLUTION_PROVIDERS", "openalex,crossref,semantic_scholar"
     )
+    # Specialist indexes asked only for references the primary ones cannot resolve:
+    # dblp (computer science), europe_pmc (life sciences), datacite (datasets,
+    # software, arXiv and Zenodo DOIs). Empty to disable.
+    SUPPLEMENTARY_PROVIDERS: tuple[str, ...] = _csv(
+        "CITEPRISM_SUPPLEMENTARY_PROVIDERS", "dblp,europe_pmc,datacite"
+    )
     SEMANTIC_SCHOLAR_API_KEY: Optional[str] = os.getenv("SEMANTIC_SCHOLAR_API_KEY")
     SEMANTIC_SCHOLAR_BASE_URL: str = os.getenv(
         "SEMANTIC_SCHOLAR_BASE_URL", "https://api.semanticscholar.org/graph/v1"
     )
     CROSSREF_BASE_URL: str = os.getenv("CROSSREF_BASE_URL", "https://api.crossref.org")
+    # dblp.org first, then its official mirror(s) when dblp.org fails or is blocked locally.
+    DBLP_BASE_URL: str = os.getenv("CITEPRISM_DBLP_BASE_URL", "https://dblp.org")
+    DBLP_MIRROR_URLS: tuple[str, ...] = _csv("CITEPRISM_DBLP_MIRROR_URLS", "https://dblp.uni-trier.de")
     CROSSREF_MAILTO: Optional[str] = os.getenv("CROSSREF_MAILTO")
+    # Ask doi.org whether a printed DOI that no index knows is registered at all.
+    # Without this check a DOI is never reported as invalid, only as "not found in the indexes".
+    DOI_REGISTRY_CHECK: bool = os.getenv("CITEPRISM_DOI_REGISTRY_CHECK", "true").strip().lower() not in {"0", "false", "no", "off"}
+    DOI_RESOLVER_URL: str = os.getenv("CITEPRISM_DOI_RESOLVER_URL", "https://doi.org")
     RESOLUTION_CANDIDATES_PER_PROVIDER: int = _int("CITEPRISM_RESOLUTION_CANDIDATES", 8)
     RESOLUTION_TIMEOUT_SECONDS: float = _float("CITEPRISM_RESOLUTION_TIMEOUT", 35.0)
 
@@ -166,6 +179,45 @@ class Phase4Settings:
     # ------------------------------------------------------------------
     EVALUATION_DATASET_DIR: str = os.getenv("CITEPRISM_EVAL_DATASET_DIR", "data/evaluation")
     EVALUATION_CALIBRATION_BINS: int = _int("CITEPRISM_EVAL_CALIBRATION_BINS", 10)
+
+    # ------------------------------------------------------------------
+    # V2.0 analysis layers (relevance, self-citation, literature gaps)
+    # ------------------------------------------------------------------
+    # auto | sentence_transformers | hf_inference | lexical | off
+    SIMILARITY_BACKEND: str = os.getenv("CITEPRISM_SIMILARITY_BACKEND", "auto").strip().lower()
+    # huggingface | google | openai | openai_compatible
+    ASSESSMENT_PROVIDER: str = os.getenv("CITEPRISM_ASSESSMENT_PROVIDER", "huggingface").strip().lower()
+    SELF_CITATION_RATE_THRESHOLD: float = _float("CITEPRISM_SELF_CITATION_RATE", 0.25)
+    SELF_CITATION_MIN_COUNT: int = _int("CITEPRISM_SELF_CITATION_MIN_COUNT", 3)
+    SELF_CITATION_CONCENTRATION: float = _float("CITEPRISM_SELF_CITATION_CONCENTRATION", 0.15)
+    ENABLE_GAP_ANALYSIS: bool = env_bool("CITEPRISM_ENABLE_GAP_ANALYSIS", True)
+    GAP_MIN_SUPPORT: Optional[int] = (
+        _int("CITEPRISM_GAP_MIN_SUPPORT", 0) or None
+    )
+    GAP_MAX_CANDIDATES: int = _int("CITEPRISM_GAP_MAX_CANDIDATES", 15)
+
+    # ------------------------------------------------------------------
+    # Efficiency and offline deployment
+    # ------------------------------------------------------------------
+    ENRICHMENT_CONCURRENCY: int = _int("CITEPRISM_ENRICHMENT_CONCURRENCY", 4)
+    # No outbound calls to scholarly indexes or open-access hosts. Pair with
+    # LLM_PROVIDER=openai_compatible (a local model) and a local or lexical
+    # similarity backend for a fully air-gapped installation.
+    OFFLINE_MODE: bool = env_bool("CITEPRISM_OFFLINE_MODE", False)
+    # Plain-language assistant: "auto" lets the configured model phrase answers to
+    # questions outside the built-in topics (facts from the audit only); "off"
+    # keeps it to built-in answers with no model calls.
+    ASSISTANT_MODEL: str = os.getenv("CITEPRISM_ASSISTANT_MODEL", "auto").strip().lower()
+    # What the operator has arranged with the model providers that receive manuscript
+    # text: unverified (default; uploaders are warned), no_training (declared paid plans
+    # that exclude training), local_only (enforced). See src/workspace/data_policy.py.
+    MODEL_DATA_TERMS: str = os.getenv("CITEPRISM_MODEL_DATA_TERMS", "unverified").strip().lower()
+    OPENAI_COMPATIBLE_BASE_URL: Optional[str] = os.getenv("OPENAI_COMPATIBLE_BASE_URL")
+    OPENAI_COMPATIBLE_MODEL: Optional[str] = os.getenv("OPENAI_COMPATIBLE_MODEL")
+    OPENAI_COMPATIBLE_API_KEY: Optional[str] = os.getenv("OPENAI_COMPATIBLE_API_KEY")
+    # Largest output requested from an OpenAI-compatible server. Hosted free tiers
+    # (Groq, OpenRouter) count requested output against per-minute token limits.
+    OPENAI_COMPATIBLE_MAX_TOKENS: int = int(os.getenv("OPENAI_COMPATIBLE_MAX_TOKENS", "8192"))
 
     # ------------------------------------------------------------------
     # Validation
@@ -230,6 +282,9 @@ class Phase4Settings:
         }
         if unknown_providers:
             errors.append(f"unknown resolution providers: {', '.join(sorted(unknown_providers))}")
+        unknown_supplementary = set(cls.SUPPLEMENTARY_PROVIDERS) - {"dblp", "europe_pmc", "datacite"}
+        if unknown_supplementary:
+            errors.append(f"unknown supplementary providers: {', '.join(sorted(unknown_supplementary))}")
         if not cls.RESOLUTION_PROVIDERS:
             errors.append("at least one resolution provider is required")
 
@@ -245,6 +300,31 @@ class Phase4Settings:
         ):
             if not 0.0 <= value <= 1.0:
                 errors.append(f"{name} must be between 0 and 1")
+
+        if cls.ASSISTANT_MODEL not in {"auto", "off"}:
+            errors.append("CITEPRISM_ASSISTANT_MODEL must be auto or off")
+        if cls.SIMILARITY_BACKEND not in {"auto", "sentence_transformers", "hf_inference", "lexical", "off"}:
+            errors.append("CITEPRISM_SIMILARITY_BACKEND must be auto, sentence_transformers, "
+                          "hf_inference, lexical or off")
+        if cls.ASSESSMENT_PROVIDER not in {"huggingface", "google", "openai", "openai_compatible"}:
+            errors.append("CITEPRISM_ASSESSMENT_PROVIDER must be huggingface, google, openai "
+                          "or openai_compatible")
+        if not 0.0 < cls.SELF_CITATION_RATE_THRESHOLD <= 1.0:
+            errors.append("CITEPRISM_SELF_CITATION_RATE must be within (0, 1]")
+        if not 1 <= cls.ENRICHMENT_CONCURRENCY <= 16:
+            errors.append("CITEPRISM_ENRICHMENT_CONCURRENCY must be between 1 and 16")
+        if cls.OFFLINE_MODE and cls.ENABLE_FULL_TEXT_ACQUISITION:
+            errors.append("full-text acquisition needs network access; disable it in offline mode")
+        if cls.OFFLINE_MODE and cls.SIMILARITY_BACKEND == "hf_inference":
+            errors.append("the hf_inference similarity backend needs network access")
+        if cls.OFFLINE_MODE and getattr(cls, "LLM_PROVIDER", "google") != "openai_compatible":
+            errors.append("offline mode needs LLM_PROVIDER=openai_compatible (a local model)")
+        if cls.OFFLINE_MODE and cls.ASSESSMENT_PROVIDER in {"huggingface", "google", "openai"}:
+            errors.append("offline mode needs CITEPRISM_ASSESSMENT_PROVIDER=openai_compatible "
+                          "(a local model)")
+
+        from src.workspace.data_policy import policy_errors
+        errors.extend(policy_errors(cls))
 
         if cls.EVALUATION_CALIBRATION_BINS < 2 or cls.EVALUATION_CALIBRATION_BINS > 100:
             errors.append("CITEPRISM_EVAL_CALIBRATION_BINS must be between 2 and 100")

@@ -19,8 +19,13 @@ DATASET_SCHEMA_VERSION = "citeprism-eval-v1"
 
 # What a human can label about a reference.
 IDENTITY_LABELS = ("resolved_correct", "resolved_incorrect", "unresolvable", "not_applicable")
-SUPPORT_LABELS = ("supports", "contradicts", "context_only", "insufficient_evidence", "unassessable")
+SUPPORT_LABELS = ("supports", "contradicts", "context_only", "unrelated", "insufficient_evidence",
+                  "unassessable")
 EXTRACTION_LABELS = ("clean", "needs_review", "unlocatable")
+# V2.0 objectives: relevance of the citation to the claims it supports,
+# self-citation, and bibliographic metadata consistency.
+RELEVANCE_LABELS = ("relevant", "borderline", "irrelevant")
+METADATA_LABELS = ("consistent", "inconsistent")
 
 
 @dataclass
@@ -35,8 +40,14 @@ class LabeledItem:
     identity_label: str | None = None
     support_label: str | None = None
     extraction_label: str | None = None
+    relevance_label: str | None = None
+    metadata_label: str | None = None
+    # True when the reference shares an author with the manuscript.
+    is_self_citation: bool | None = None
     # True when a reviewer would want this reference surfaced at all.
     should_be_reviewed: bool | None = None
+    # Research field of the manuscript, for multi-domain breakdowns.
+    domain: str | None = None
     annotator: str = "unknown"
     annotated_at: str | None = None
     notes: str | None = None
@@ -54,15 +65,16 @@ class LabeledItem:
             (self.identity_label, IDENTITY_LABELS, "identity_label"),
             (self.support_label, SUPPORT_LABELS, "support_label"),
             (self.extraction_label, EXTRACTION_LABELS, "extraction_label"),
+            (self.relevance_label, RELEVANCE_LABELS, "relevance_label"),
+            (self.metadata_label, METADATA_LABELS, "metadata_label"),
         ):
             if value is not None and value not in allowed:
                 problems.append(f"{self.item_id}: {name} '{value}' is not a permitted label")
-        if (
-            self.identity_label is None
-            and self.support_label is None
-            and self.extraction_label is None
-            and self.should_be_reviewed is None
-        ):
+        if all(value is None for value in (
+            self.identity_label, self.support_label, self.extraction_label,
+            self.relevance_label, self.metadata_label, self.is_self_citation,
+            self.should_be_reviewed,
+        )):
             problems.append(f"{self.item_id}: at least one label is required")
         return problems
 
@@ -113,6 +125,10 @@ class EvaluationDataset:
             "labeled_identity": sum(item.identity_label is not None for item in self.items),
             "labeled_support": sum(item.support_label is not None for item in self.items),
             "labeled_extraction": sum(item.extraction_label is not None for item in self.items),
+            "labeled_relevance": sum(item.relevance_label is not None for item in self.items),
+            "labeled_self_citation": sum(item.is_self_citation is not None for item in self.items),
+            "labeled_metadata": sum(item.metadata_label is not None for item in self.items),
+            "domains": sorted({item.domain for item in self.items if item.domain}),
         }
 
 
@@ -170,6 +186,8 @@ def write_dataset(dataset: EvaluationDataset, path: str | Path) -> Path:
 
 
 __all__ = [
+    "METADATA_LABELS",
+    "RELEVANCE_LABELS",
     "DATASET_SCHEMA_VERSION",
     "EXTRACTION_LABELS",
     "EvaluationDataset",

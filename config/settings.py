@@ -29,7 +29,7 @@ class Config(Phase4Settings, TrustSettings):
     # ============================================================================
 
     # LLM Provider selection
-    LLM_PROVIDER: Literal["openai", "google"] = os.getenv("LLM_PROVIDER", "google")
+    LLM_PROVIDER: Literal["openai", "google", "openai_compatible"] = os.getenv("LLM_PROVIDER", "google")
 
     # API Keys
     OPENAI_API_KEY: Optional[str] = os.getenv("OPENAI_API_KEY")
@@ -37,7 +37,15 @@ class Config(Phase4Settings, TrustSettings):
 
     # Model names
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o")
-    GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-2.5-flash")
+    GOOGLE_MODEL: str = os.getenv("GOOGLE_MODEL", "gemini-3.6-flash")
+
+    # Models tried in order when the primary is overloaded, rate limited or
+    # unavailable: "model" (same provider) or "provider:model", comma separated.
+    # Empty -> current Gemini defaults (3.1 Flash-Lite, then 3.5 Flash); "none" disables.
+    LLM_FALLBACK_MODELS: Optional[str] = os.getenv("LLM_FALLBACK_MODELS")
+    # Gemini 2.5 Flash thinking budget for JSON tasks. 0 = off (faster, far fewer
+    # 503 "overloaded" failures); "default" leaves the model's own setting.
+    GOOGLE_THINKING_BUDGET: Optional[str] = os.getenv("GOOGLE_THINKING_BUDGET", "0")
 
     # Token limits
     MAX_TOKENS: int = int(os.getenv("MAX_TOKENS", "32000"))
@@ -55,7 +63,9 @@ class Config(Phase4Settings, TrustSettings):
     # ============================================================================
 
     # Embedding model for semantic similarity
-    ENABLE_TOPIC_SIMILARITY: bool = os.getenv("ENABLE_TOPIC_SIMILARITY", "false").lower() == "true"
+    # On by default: topic similarity is the embedding half of the V2.0 hybrid
+    # relevance signal. CITEPRISM_SIMILARITY_BACKEND chooses how it is computed.
+    ENABLE_TOPIC_SIMILARITY: bool = os.getenv("ENABLE_TOPIC_SIMILARITY", "true").lower() == "true"
     EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
     # ============================================================================
@@ -162,6 +172,24 @@ class Config(Phase4Settings, TrustSettings):
 
         if cls.LLM_PROVIDER == "google" and not cls.GOOGLE_API_KEY:
             errors.append("GOOGLE_API_KEY is required when using Google")
+
+        try:
+            from src.evidence.providers import parse_fallback_chain
+            parse_fallback_chain(cls.LLM_FALLBACK_MODELS, cls.LLM_PROVIDER)
+        except ValueError as error:
+            errors.append(str(error))
+        if str(cls.GOOGLE_THINKING_BUDGET or "default").strip().lower() != "default":
+            try:
+                int(cls.GOOGLE_THINKING_BUDGET)
+            except ValueError:
+                errors.append("GOOGLE_THINKING_BUDGET must be an integer or 'default'")
+        if cls.LLM_PROVIDER not in {"google", "openai", "openai_compatible"}:
+            errors.append("LLM_PROVIDER must be google, openai or openai_compatible")
+
+        uses_local = "openai_compatible" in {cls.LLM_PROVIDER, cls.ASSESSMENT_PROVIDER}
+        if uses_local and not (cls.OPENAI_COMPATIBLE_BASE_URL and cls.OPENAI_COMPATIBLE_MODEL):
+            errors.append("OPENAI_COMPATIBLE_BASE_URL and OPENAI_COMPATIBLE_MODEL are required "
+                          "for the openai_compatible provider")
 
         # Check weights sum to 1.0
         if abs((cls.EMBEDDING_WEIGHT + cls.LLM_WEIGHT) - 1.0) > 0.01:

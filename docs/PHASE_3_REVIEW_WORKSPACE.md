@@ -19,7 +19,7 @@ Release: `4.0.0a1`. Phase 3 turns the verified citation-evidence engine into a u
 
 ## Start on Windows
 
-Keep the `.env` file from the successful Phase 2 run. From `C:\Users\keyur\Citeprism`:
+Keep the `.env` file from the successful Phase 2 run. From `C:\Users\<you>\Citeprism`:
 
 ```powershell
 & .\scripts\setup_phase3.ps1

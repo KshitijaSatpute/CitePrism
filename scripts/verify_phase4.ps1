@@ -20,6 +20,12 @@ try {
     & $Python -c "from config.settings import Config; Config.validate_phase4(); print('configuration valid')"
     if ($LASTEXITCODE -ne 0) { throw "Phase 4 configuration validation failed." }
 
+    & $Python .\scripts\check_no_secrets.py
+    if ($LASTEXITCODE -ne 0) { throw "Secrets are tracked by git. Remove and rotate them before continuing." }
+
+    & $Python -m unittest tests.test_v2_requirements tests.test_assistant tests.test_provider_fallback tests.test_coverage_providers tests.test_author_year tests.test_book_references tests.test_chat_breadth tests.test_injection_benchmark tests.test_data_policy tests.test_conversation tests.test_hardening tests.test_review_fixes tests.test_real_report_542 -v
+    if ($LASTEXITCODE -ne 0) { throw "CitePrism V2.0 requirement tests failed." }
+
     & $Python -m unittest `
         tests.test_phase4_contracts `
         tests.test_phase4_workspace `

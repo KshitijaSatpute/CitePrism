@@ -43,6 +43,13 @@ def validate_pdf(path: Path, *, max_bytes: int) -> None:
     with path.open("rb") as handle:
         if handle.read(len(PDF_MAGIC)) != PDF_MAGIC:
             raise ValueError("The upload does not have a valid PDF file signature.")
+        handle.seek(max(0, size - 8192))
+        tail = handle.read()
+    # A real PDF ends with an end-of-file marker; a file that only starts like one
+    # (a renamed web page, a truncated download) is refused before it is stored.
+    if b"%%EOF" not in tail:
+        raise ValueError("The file is not a complete PDF (it may be truncated or not a PDF at all). "
+                         "Export or download it again.")
 
 
 def safe_stem(filename: str, fallback: str = "manuscript") -> str:

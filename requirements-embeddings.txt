@@ -1,0 +1,8 @@
+# Optional: local sentence embeddings for the V2.0 hybrid relevance signal.
+# Without this, CITEPRISM_SIMILARITY_BACKEND=auto uses the Hugging Face
+# Inference API (needs HF_API_TOKEN and network) or, failing that, the lexical
+# TF-IDF fallback, which measures vocabulary overlap rather than meaning.
+# Installs PyTorch (~700 MB CPU wheel). The first run downloads the model
+# (all-MiniLM-L6-v2, ~90 MB) into the Hugging Face cache.
+-r requirements-phase4.txt
+sentence-transformers>=3,<6

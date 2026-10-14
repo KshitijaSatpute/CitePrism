@@ -27,6 +27,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="directory of scored artifacts, or a single JSON file")
     parser.add_argument("--output", default=None, help="write the full report as JSON")
     parser.add_argument("--bins", type=int, default=10, help="calibration bins (default 10)")
+    parser.add_argument("--markdown", default=None,
+                        help="also write a publication-ready Markdown report with LaTeX tables")
     arguments = parser.parse_args(argv)
 
     from src.evaluation.dataset import load_dataset
@@ -54,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     if report["manuscripts_missing_artifact"]:
         print(f"Missing artifacts for {len(report['manuscripts_missing_artifact'])} manuscript(s)")
 
-    for name in ("identity", "support", "extraction"):
+    for name in ("identity", "support", "extraction", "relevance"):
         section = report["aggregate"].get(name)
         if section:
             print(f"\n{name.title()} — accuracy {section['accuracy']}, "
@@ -80,6 +82,32 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"   {row['lower']:.1f}-{row['upper']:.1f} {row['count']:>4} "
                       f"{row['mean_confidence']:>8} {row['observed_frequency']:>10}")
 
+    for name in ("self_citation", "metadata"):
+        section = report["aggregate"].get(name)
+        if section:
+            print(f"\n{name.replace('_', ' ').title()} — precision {section['precision']}, "
+                  f"recall {section['recall']}, F1 {section['f1']} (n={section['samples']})")
+
+    detector = report["aggregate"].get("relevance_detector")
+    if detector:
+        best = detector["recommended_threshold"] or {}
+        print(f"\nIrrelevance detection from RS_final (n={detector['samples']}, "
+              f"positives={detector['positives']}): AUROC {detector['auroc']}")
+        print(f"   F1-optimal threshold {best.get('threshold')} -> P={best.get('precision')} "
+              f"R={best.get('recall')} F1={best.get('f1')} (tune and report on separate splits)")
+
+    if report.get("uncertainty"):
+        print("\n95% manuscript-level bootstrap intervals")
+        for name, interval in report["uncertainty"].items():
+            if interval:
+                print(f"   {name:22s} {interval['point']}  [{interval['low']}, {interval['high']}]")
+
+    if report.get("domains"):
+        print("\nBy domain")
+        for domain, row in report["domains"].items():
+            print(f"   {domain:22s} manuscripts={row['manuscripts']} "
+                  f"identity_acc={row['identity_accuracy']} relevance_F1={row['relevance_macro_f1']}")
+
     print("\nLimitations")
     for item in report["limitations"]:
         print(f"  - {item}")
@@ -90,6 +118,12 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
         )
         print(f"\nFull report written to {arguments.output}")
+    if arguments.markdown:
+        from src.evaluation.report import render_markdown
+
+        Path(arguments.markdown).parent.mkdir(parents=True, exist_ok=True)
+        Path(arguments.markdown).write_text(render_markdown(report), encoding="utf-8")
+        print(f"Markdown report written to {arguments.markdown}")
     return 0
 
 

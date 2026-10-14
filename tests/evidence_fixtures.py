@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from src.evidence import SCHEMA_VERSION
 from src.evidence.extraction import pdf_source, anchor_manuscript
 from src.enrichers.openalex_enricher import OpenAlexEnricher
+from src.evidence.scholarly import query_title
 from src.scorers.relevance_scorer import RelevanceScorer
 
 FIXTURES = Path(__file__).parent / 'fixtures' / 'evidence'
@@ -44,7 +45,8 @@ def work_from_external(external):
 
 def enriched(root):
     value = legacy()
-    works = {r['original_data']['parsed']['title']: [work_from_external(r['external_metadata'])]
+    # Keyed by the query the enricher sends: the printed title with PDF-spaced hyphens rejoined.
+    works = {query_title(r['original_data']['parsed']): [work_from_external(r['external_metadata'])]
         for r in value['scored_references'] if r['external_metadata'].get('id')}
     enricher = OpenAlexEnricher(SimpleNamespace(DATA_DIR=root), Cache())
     enricher._get_json = lambda provider, url, params: {'results': works.get(params.get('search'), [])} if provider == 'openalex' else {}
@@ -56,7 +58,7 @@ class GroundedProvider:
     def judge_batch(self, tasks):
         return [{'task_id': task['task_id'], 'decision': 'context_only',
                  'claim_quote': task['manuscript_context'],
-                 'source_quotes': [task['source_abstract'][:140]],
+                 'source_quotes': [task['source_text'][:140]],
                  'rationale': 'Offline regression proposal: the supplied abstract provides context.'} for task in tasks]
 
 

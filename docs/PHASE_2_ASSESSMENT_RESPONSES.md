@@ -69,10 +69,10 @@ evaluation using independently reviewed examples.
 ```powershell
 & {
     $ErrorActionPreference = "Stop"
-    Set-Location "C:\Users\keyur\Citeprism"
+    Set-Location "C:\Users\<you>\Citeprism"
     $python = ".\.venv-phase1\Scripts\python.exe"
-    $assessmentFolder = "C:\Users\keyur\Downloads\CitePrism_Assessment_Fix"
-    Expand-Archive -LiteralPath "C:\Users\keyur\Downloads\CITEPRISM_PHASE2_ASSESSMENT_FIX.zip" -DestinationPath $assessmentFolder -Force
+    $assessmentFolder = "C:\Users\<you>\Downloads\CitePrism_Assessment_Fix"
+    Expand-Archive -LiteralPath "C:\Users\<you>\Downloads\CITEPRISM_PHASE2_ASSESSMENT_FIX.zip" -DestinationPath $assessmentFolder -Force
     & $python "$assessmentFolder\APPLY_ASSESSMENT_FIX.py" --project-root . --apply
     if ($LASTEXITCODE -ne 0) { throw "Installer stopped. Read the message above." }
     & .\scripts\verify_phase2.ps1 -Python $python -WithPostgres

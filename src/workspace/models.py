@@ -159,6 +159,23 @@ class AuditOptions(Contract):
     force_enrich: bool = False
     force_score: bool = False
     run_missing_citations: bool = False
+    # Optional ORCID iDs of the manuscript's authors. They turn self-citation
+    # matching from probable (name and initial) into confirmed (same person).
+    author_orcids: list[str] = Field(default_factory=list, max_length=50)
+
+    @field_validator("author_orcids")
+    @classmethod
+    def valid_orcids(cls, value: list[str]) -> list[str]:
+        from src.evidence.self_citation import normalize_orcid
+
+        cleaned = []
+        for item in value:
+            identifier = normalize_orcid(item)
+            if identifier is None:
+                raise ValueError(f"'{item}' is not a valid ORCID iD (checksum or format)")
+            if identifier not in cleaned:
+                cleaned.append(identifier)
+        return cleaned
 
 
 class Activity(Contract):

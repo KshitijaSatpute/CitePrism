@@ -8,7 +8,25 @@ from typing import Any
 
 
 def normalize_doi(value: str | None) -> str:
-    return re.sub(r"^https?://(?:dx\.)?doi\.org/", "", value or "", flags=re.I).lower()
+    """A DOI in one comparable form: no resolver prefix, no "doi:" label, no trailing
+    punctuation from the sentence it was printed in, lower case.
+
+    "https://doi.org/10.1109/CVPR.2016.90." and "doi: 10.1109/cvpr.2016.90" are the
+    same DOI; treating them as different made correct references look mistyped.
+    """
+    import unicodedata
+    from urllib.parse import unquote
+
+    text = unicodedata.normalize("NFKC", str(value or "")).strip()
+    text = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", text, flags=re.I)
+    text = re.sub(r"^doi\s*[:=]?\s*", "", text, flags=re.I)
+    if "%" in text:
+        text = unquote(text)
+    text = text.strip()
+    pairs = {")": "(", "]": "["}
+    while text and (text[-1] in ".,;:" or (text[-1] in pairs and text.count(text[-1]) > text.count(pairs[text[-1]]))):
+        text = text[:-1]
+    return text.lower()
 
 
 def select_best_candidate(

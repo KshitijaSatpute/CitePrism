@@ -59,18 +59,18 @@ Existing record bodies, record hashes, audit events and Phase 1 migration bytes 
 
 Apply migrations through the existing admin migration command. The Windows verification script starts the existing disposable development PostgreSQL service, applies migrations, and requires the live tests when `-WithPostgres` is supplied. Production migration planning remains part of Phase 5.
 
-## Install and run on Keyur's Windows machine
+## Install and run on a Windows machine
 
 1. Stop the current Streamlit terminal with **Ctrl+C**.
-2. Extract `CITEPRISM_PHASE2_RELEASE.zip` to `C:\Users\keyur\Downloads\CitePrism_Phase2`.
+2. Extract `CITEPRISM_PHASE2_RELEASE.zip` to `C:\Users\<you>\Downloads\CitePrism_Phase2`.
 3. In the VS Code PowerShell terminal, run this block:
 
 ```powershell
 & {
     $ErrorActionPreference = "Stop"
-    Set-Location "C:\Users\keyur\Citeprism"
+    Set-Location "C:\Users\<you>\Citeprism"
     $phase2Python = ".\.venv-phase1\Scripts\python.exe"
-    & $phase2Python "C:\Users\keyur\Downloads\CitePrism_Phase2\APPLY_PHASE2.py" --project-root . --apply
+    & $phase2Python "C:\Users\<you>\Downloads\CitePrism_Phase2\APPLY_PHASE2.py" --project-root . --apply
     if ($LASTEXITCODE -ne 0) { throw "Phase 2 files were not installed. Read the message above." }
     & $phase2Python -m pip install -r requirements-phase2.txt
     if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed." }

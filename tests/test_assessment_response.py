@@ -33,8 +33,25 @@ class SavedRecorder:
             self.call_data['output_sha256'] = digest_json(response)
         self.records = []
 
+    @staticmethod
+    def recorded_view(tasks):
+        """Express v4 tasks in the v3 shape this recording was made with.
+
+        v4 renamed `source_abstract` to `source_text` and added `source_kind`.
+        For an abstract-only source the evidence text is byte-identical, so the
+        recorded answers are still being re-validated against the same input.
+        """
+        view = []
+        for task in tasks:
+            task = dict(task)
+            if task.pop('source_kind', 'abstract') != 'abstract':
+                return tasks  # a full-text task can never match a v3 recording
+            task['source_abstract'] = task.pop('source_text')
+            view.append(task)
+        return view
+
     def call(self, **kwargs):
-        if kwargs['request']['tasks'] != self.call_data['request']['tasks']:
+        if self.recorded_view(kwargs['request']['tasks']) != self.call_data['request']['tasks']:
             raise AssertionError('Replay tasks differ from the recorded request')
         self.records.append(copy.deepcopy(self.call_data))
         return self.call_data['response']
@@ -86,7 +103,12 @@ class AssessmentResponseTests(unittest.TestCase):
         for marker, verdict in [('[3]', 'insufficient_evidence'), ('[4]', 'context_only'), ('[5]', 'insufficient_evidence')]:
             ref = refs[marker]
             self.assertEqual(ref['claim_assessment'], verdict)
-            self.assertIsNone(ref['RS_final'])
+            # V2.0 hybrid relevance: insufficient_evidence says nothing about
+            # relevance, so it contributes no LLM component; context_only does.
+            self.assertEqual(ref['RS_llm'], 50.0 if verdict == 'context_only' else None)
+            self.assertIn(ref['relevance']['basis'],
+                          {'hybrid', 'llm_only'} if verdict == 'context_only' else {'embedding_only', 'none'})
+            self.assertNotEqual(ref['relevance_label'], 'potentially_irrelevant')
             assessment = ref['claim_assessments'][0]
             context = ref['citation_occurrences'][0]['context_window']
             anchor = assessment['claim_anchor']

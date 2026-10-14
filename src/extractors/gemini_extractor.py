@@ -25,7 +25,7 @@ except ImportError:
     pdfminer_extract = None
 
 from src.evidence import SCHEMA_VERSION
-from src.evidence.extraction import pdf_source, joined_source, anchor_manuscript, reference_boundary
+from src.evidence.extraction import pdf_source, read_pdf_isolated, joined_source, anchor_manuscript, reference_boundary
 from src.evidence.providers import JsonProvider, ProviderFailure, strict_json
 from src.evidence.checkpoints import ExtractionCheckpoint
 from src.evidence.text import digest_text
@@ -522,6 +522,21 @@ class OpenAIInterface(GoogleInterface):
         self.provider = JsonProvider("openai", api_key, model, max_tokens, directory)
 
 
+class OpenAICompatibleInterface(GoogleInterface):
+    """A self-hosted model behind the OpenAI chat API (Ollama, vLLM, LM Studio).
+
+    Same chunked extraction and validation as the hosted providers. This is
+    the extraction path for offline and data-sovereign deployments.
+    """
+
+    def __init__(self, api_key: str | None, model: str, max_tokens: int, directory=None,
+                 base_url: str | None = None):
+        self.model_name = model
+        self.max_tokens = max_tokens
+        self.provider = JsonProvider("openai_compatible", api_key, model, max_tokens, directory,
+                                     base_url=base_url)
+
+
 # ============================================================================
 # MAIN EXTRACTOR CLASS (PIPELINE INTERFACE)
 # ============================================================================
@@ -538,11 +553,10 @@ class GeminiExtractor:
 
         # Get configuration
         self.provider = getattr(config, 'LLM_PROVIDER', 'google')
-        self.model = (
-            getattr(config, 'OPENAI_MODEL', 'gpt-4o')
-            if self.provider == 'openai'
-            else getattr(config, 'GOOGLE_MODEL', 'gemini-2.5-flash')
-        )
+        self.model = {
+            'openai': getattr(config, 'OPENAI_MODEL', 'gpt-4o'),
+            'openai_compatible': getattr(config, 'OPENAI_COMPATIBLE_MODEL', None),
+        }.get(self.provider, getattr(config, 'GOOGLE_MODEL', 'gemini-3.6-flash'))
         self.max_tokens = min(32000, max(256, int(getattr(config, 'MAX_TOKENS', 32000))))
         self.pdf_extractor = getattr(config, 'PDF_EXTRACTOR', 'pypdf')
 
@@ -560,22 +574,21 @@ class GeminiExtractor:
         logger.info(f"  - Max tokens: {self.max_tokens}")
 
     def _get_llm_interface(self):
-        """Get the appropriate LLM interface."""
+        """The configured model plus its fallbacks (LLM_FALLBACK_MODELS).
+
+        All three interfaces share one extraction strategy; only the model
+        client differs, so the interface wraps whatever the factory returns.
+        """
+        from src.evidence.providers import build_json_provider
         self.config.validate()
-        if self.provider == "openai":
-            return OpenAIInterface(
-                api_key=self.openai_api_key,
-                model=self.model,
-                max_tokens=self.max_tokens, directory=self.debug_dir / "calls"
-            )
-        elif self.provider == "google":
-            return GoogleInterface(
-                api_key=self.google_api_key,
-                model=self.model,
-                max_tokens=self.max_tokens, directory=self.debug_dir / "calls"
-            )
-        else:
+        if self.provider not in {"google", "openai", "openai_compatible"}:
             raise ValueError(f"Unknown LLM provider: {self.provider}")
+        interface = GoogleInterface.__new__(GoogleInterface)
+        interface.model_name = self.model
+        interface.max_tokens = self.max_tokens
+        interface.provider = build_json_provider(self.config, self.provider, self.model,
+                                                 self.max_tokens, self.debug_dir / "calls")
+        return interface
 
     def extract(self, pdf_path: Path, progress_bar=None) -> Dict:
         """
@@ -598,7 +611,7 @@ class GeminiExtractor:
                 progress_bar.progress(0.10, text="Extracting text from PDF...")
 
             logger.info(f"Step 1: Extracting text using {self.pdf_extractor}...")
-            source = pdf_source(pdf_path, method=self.pdf_extractor)
+            source = read_pdf_isolated(pdf_path, method=self.pdf_extractor)
 
             # Phase 4: recover a text layer from scanned pages before parsing.
             # A scanned manuscript used to be rejected here with advice to OCR it
@@ -645,8 +658,13 @@ class GeminiExtractor:
             logger.info("Step 3: Sending text to LLM for parsing...")
             debug_path = self.debug_dir / f"{pdf_path.stem}_raw_response.json"
 
-            parsed_dict = llm.parse_manuscript(raw_text, debug_path=debug_path,
-                                              document_sha256=source["pdf_sha256"])
+            try:
+                parsed_dict = llm.parse_manuscript(raw_text, debug_path=debug_path,
+                                                  document_sha256=source["pdf_sha256"])
+            except ProviderFailure as failure:
+                parsed_dict = self._deterministic_parse(raw_text, source, failure)
+                if parsed_dict is None:
+                    raise
             parsed_dict.setdefault(
                 "extraction_metadata",
                 {
@@ -697,7 +715,13 @@ class GeminiExtractor:
                 result.setdefault("extraction_metadata", {})["text_layer"] = status
             result["schema_version"] = SCHEMA_VERSION
             result["provider_runs"] = list(llm.provider.recorder.records)
-            llm._extraction_checkpoint.finish()
+            # Which model actually produced the parse: with fallbacks this can differ
+            # from the configured primary, and reviewers must be able to see that.
+            result.setdefault("extraction_metadata", {})["models_used"] = sorted(
+                {f"{run.get('provider')}:{run.get('model')}" for run in result["provider_runs"]
+                 if run.get("status") == "succeeded"})
+            if getattr(llm, "_extraction_checkpoint", None) is not None:
+                llm._extraction_checkpoint.finish()
 
             logger.info("=" * 80)
             logger.info("EXTRACTION COMPLETED SUCCESSFULLY")
@@ -710,6 +734,35 @@ class GeminiExtractor:
             if progress_bar:
                 progress_bar.progress(0.40, text=f"Extraction failed: {str(e)[:50]}...")
             raise
+
+    def _deterministic_parse(self, raw_text: str, source: dict, failure) -> Optional[Dict]:
+        """Continue without a model when the bibliography can be read by rule.
+
+        Author–year bibliographies are anchored deterministically anyway; the
+        model only refines titles. When every configured model is unavailable,
+        the audit proceeds on the printed entries, and says so, instead of
+        failing at the first stage. Numbered bibliographies still need a model.
+        """
+        from src.evidence.extraction import bibliography_style, front_matter
+
+        style, sections = bibliography_style(raw_text)
+        entries = sum(len(section.entries) for section in sections)
+        if style != "author_year" or entries < 5:
+            return None
+        logger.warning("All models unavailable (%s); continuing with the rule-based bibliography reader "
+                       "(%d printed entries).", failure.code, entries)
+        return {
+            "metadata": front_matter(source),
+            "citations_in_text": [],
+            "references_list": [],
+            "extraction_metadata": {
+                "method_version": "deterministic-author-year-v1",
+                "complete": True,
+                "warnings": ["model_unavailable_rule_based_parse"],
+                "degraded": {"reason": failure.code, "models_tried": getattr(failure, "tried", []),
+                             "mode": "rule_based_author_year"},
+            },
+        }
 
     def extract_with_cache(self, pdf_path: Path, cache_key: str,
                           db_manager, progress_bar=None,

@@ -37,11 +37,16 @@ logger = logging.getLogger(__name__)
 
 
 def configuration_fingerprint(config, stage):
-    fields = {"parsing": ("LLM_PROVIDER", "GOOGLE_MODEL", "OPENAI_MODEL", "MAX_TOKENS",
-                         "PDF_EXTRACTOR", "ENABLE_OCR", "OCR_ENGINE", "OCR_DPI", "OCR_LANGUAGES"),
-              "enrichment": ("RESOLUTION_PROVIDERS", "ENABLE_FULL_TEXT_ACQUISITION",
-                             "ENABLE_UNPAYWALL"),
-              "scoring": ("HF_MODEL", "HF_BATCH_SIZE", "ENABLE_TOPIC_SIMILARITY", "EMBEDDING_MODEL")}
+    fields = {"parsing": ("LLM_PROVIDER", "GOOGLE_MODEL", "OPENAI_MODEL", "OPENAI_COMPATIBLE_MODEL",
+                         "MAX_TOKENS", "PDF_EXTRACTOR", "ENABLE_OCR", "OCR_ENGINE", "OCR_DPI",
+                         "OCR_LANGUAGES"),
+              "enrichment": ("RESOLUTION_PROVIDERS", "SUPPLEMENTARY_PROVIDERS", "ENABLE_FULL_TEXT_ACQUISITION",
+                             "ENABLE_UNPAYWALL", "OFFLINE_MODE"),
+              # Thresholds and weights are deliberately absent: they only affect the
+              # deterministic analysis layer, which is recomputed every audit.
+              "scoring": ("ASSESSMENT_PROVIDER", "HF_MODEL", "HF_BATCH_SIZE", "GOOGLE_MODEL",
+                          "OPENAI_MODEL", "OPENAI_COMPATIBLE_MODEL", "ENABLE_TOPIC_SIMILARITY",
+                          "SIMILARITY_BACKEND", "EMBEDDING_MODEL")}
     return digest_json({k: getattr(config, k, None) for k in fields[stage]})
 
 
@@ -54,6 +59,33 @@ def current_artifact(path, section, version, fingerprint):
     except (OSError, ValueError, TypeError):
         return False
 
+
+
+TRANSIENT_ASSESSMENT_ERRORS = {"timeout", "service_unavailable", "rate_limit", "provider_error", "empty_response"}
+
+
+def interrupted_stage(path, stage):
+    """Whether a stored stage result was cut short by an outage and should be retried.
+
+    "Run the check again" after a database or model outage must actually retry the
+    references that failed. Lookups that succeeded stay cached, so only the failed
+    ones cost a new request.
+    """
+    try:
+        value = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return False
+    if stage == "enrichment":
+        # Only references an outage left unsettled. A reference resolved by OpenAlex while
+        # Semantic Scholar was rate-limited is finished; re-running it (and every model
+        # assessment after it) would cost a full audit for nothing.
+        return any((ref.get("resolution") or {}).get("status") == "provider_unavailable"
+                   or ((ref.get("resolution") or {}).get("provider_errors")
+                       and (ref.get("resolution") or {}).get("status") != "resolved")
+                   for ref in value.get("enriched_references") or [])
+    return any(assessment.get("status") == "unavailable"
+               and assessment.get("error_code") in TRANSIENT_ASSESSMENT_ERRORS
+               for ref in value.get("scored_references") or [] for assessment in ref.get("claim_assessments") or [])
 
 
 def merge_stage_result(results: Dict, stage_result: Dict) -> None:
@@ -122,6 +154,7 @@ class PipelineOrchestrator:
         force_score: bool = True,
         run_missing_citations: bool = False,
         original_filename: Optional[str] = None,
+        author_orcids: Optional[list] = None,
     ) -> Dict:
         """
         Complete end-to-end processing pipeline with per-stage force options.
@@ -168,10 +201,16 @@ class PipelineOrchestrator:
 
             force_parse = force_parse or not current_artifact(status.get('parsed_path'), 'extraction_metadata',
                 EXTRACTION_VERSION, configuration_fingerprint(self.config, 'parsing'))
+            # The expected version must be the one the *selected* enricher writes;
+            # comparing against the OpenAlex-only constant re-ran every audit.
+            from src.enrichers.phase4_enricher import expected_enrichment_version
             force_enrich = force_enrich or force_parse or not current_artifact(status.get('enriched_path'),
-                'enrichment_metadata', RESOLVER_VERSION, configuration_fingerprint(self.config, 'enrichment'))
+                'enrichment_metadata', expected_enrichment_version(self.config),
+                configuration_fingerprint(self.config, 'enrichment')) \
+                or interrupted_stage(status.get('enriched_path'), 'enrichment')
             force_score = force_score or force_enrich or not current_artifact(status.get('scored_path'),
-                'scoring_metadata', SCORING_VERSION, configuration_fingerprint(self.config, 'scoring'))
+                'scoring_metadata', SCORING_VERSION, configuration_fingerprint(self.config, 'scoring')) \
+                or interrupted_stage(status.get('scored_path'), 'scoring')
 
             # Stage 1: Parsing
             parsing_start = time.perf_counter()
@@ -331,6 +370,16 @@ class PipelineOrchestrator:
 
                 if progress_bar:
                     progress_bar.progress(0.95, text="✓ Using cached scored and analyzed data...")
+
+            # Stage 5b: Evidence analysis — hybrid relevance, metadata consistency,
+            # self-citation patterns and literature gaps. Deterministic and cheap,
+            # so it runs for new and cached scoring alike.
+            analysis_start = time.perf_counter()
+            if progress_bar:
+                progress_bar.progress(0.96, text="Analysing relevance, self-citation and literature gaps...")
+            analysis_result = self._stage_analysis(scored_path, author_orcids=author_orcids)
+            merge_stage_result(results, analysis_result)
+            results['timings']['analysis_sec'] = round(time.perf_counter() - analysis_start, 2)
 
             # Stage 6: Reference Risk Summary
             # Run this for both newly scored and cached audits so older scored
@@ -652,6 +701,37 @@ class PipelineOrchestrator:
                 'success': False,
                 'errors': [f"Scoring failed: {str(e)}"]
             }
+
+    def _stage_analysis(self, scored_path, author_orcids=None) -> Dict:
+        """Recompute the deterministic analysis layers on the scored artifact."""
+        from src.evidence.analysis import analyze_artifact
+
+        path = Path(self._normalize_path(str(scored_path)))
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError) as error:
+            return {'success': False, 'errors': [f"Analysis could not read the scored artifact: {error}"]}
+        if data.get('schema_version') != SCHEMA_VERSION:
+            return {'success': True, 'stages_skipped': ['analysis']}
+
+        gap_analyzer, enricher = None, None
+        if getattr(self.config, 'ENABLE_GAP_ANALYSIS', True) and not getattr(self.config, 'OFFLINE_MODE', False):
+            from src.enrichers.phase4_enricher import build_enricher
+            from src.evidence.literature_gaps import LiteratureGapAnalyzer
+            enricher = build_enricher(self.config, self.db)
+            gap_analyzer = LiteratureGapAnalyzer(self.config, self.db, transport=enricher,
+                                                 clients=getattr(enricher, 'clients', {}))
+        analyzed = analyze_artifact(data, self.config, author_orcids=author_orcids,
+                                    gap_analyzer=gap_analyzer)
+        if enricher is not None and enricher.recorder.records:
+            runs = analyzed.get('provider_runs', []) + enricher.recorder.records
+            analyzed['provider_runs'] = list({call['id']: call for call in runs}.values())
+        atomic_write_json(path, analyzed, encoder=NumpyEncoder)
+        counts = analyzed['review']['counts']
+        return {'success': True, 'stages_completed': ['analysis'],
+                'analysis': {key: counts.get(key, 0) for key in (
+                    'potentially_irrelevant', 'self_citations', 'metadata_inconsistencies',
+                    'possibly_missing_works', 'verified_suggestions')}}
 
     def _stage_reference_risk_summary(self, scored_path) -> Dict:
         """

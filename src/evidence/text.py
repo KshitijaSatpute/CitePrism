@@ -14,6 +14,40 @@ def digest_json(value):
     return digest_text(json.dumps(value, sort_keys=True, ensure_ascii=False, allow_nan=False))
 
 
+# "Li -Fi", "2 -Gbps": a letter must follow, so "at -80 °C" and "from -40" keep their minus sign.
+SPACED_HYPHEN = re.compile(r"(?<=\w)[ \t]+-(?=[^\W\d_])")
+TRAILING = ".,;:!?)]}”’\"'"
+
+
+def repaired_title(printed, source=None):
+    """A printed title without the PDF text layer's spacing artifacts, for display only.
+
+    "Real -Time" is "Real-Time" ("Lehr- und Lernforschung" keeps its space). With the matched
+    work's title, a word the text layer split ("Equa lizer") is joined when the joined word is
+    in that title and neither piece is: the printed page shows "Equalizer". Wording, case and
+    punctuation are never changed, and comparisons always use the title as extracted.
+    """
+    if not printed:
+        return printed
+    text = SPACED_HYPHEN.sub("-", str(printed)).strip()
+    if not source:
+        return text
+    known = set(re.findall(r"[^\W_]+", unicodedata.normalize("NFKC", str(source)).casefold()))
+    pieces, joined, index = text.split(" "), [], 0
+    while index < len(pieces):
+        if index + 1 < len(pieces):
+            first, second = pieces[index], pieces[index + 1]
+            core = second.rstrip(TRAILING)
+            if (first.isalpha() and core.isalpha() and (first + core).casefold() in known
+                    and first.casefold() not in known and core.casefold() not in known):
+                joined.append(first + second)
+                index += 2
+                continue
+        joined.append(pieces[index])
+        index += 1
+    return " ".join(joined)
+
+
 def canonical_id(value):
     """Unify numeric citation labels without erasing meaningful author/year text."""
     text = str(value if value is not None else "").strip()
@@ -84,6 +118,9 @@ def bibliographic_text(text):
 
 
 def marker_ids(marker):
+    ieee = re.fullmatch(r"\[\s*(\d+)\s*\]\s*[–—-]\s*\[\s*(\d+)\s*\]", marker or "")
+    if ieee:                                  # "[1]–[3]" cites 1, 2 and 3
+        marker = f"[{ieee.group(1)}-{ieee.group(2)}]"
     if not re.fullmatch(r"\[\s*\d[\d\s,;–—-]*\]", marker):
         return [canonical_id(marker)]
     result = []

@@ -32,11 +32,23 @@ class ReviewReference(Contract):
     quote_count: int = Field(ge=0)
     topic_similarity: float | None = Field(default=None, ge=0, le=100)
     finding_ids: list[str] = Field(default_factory=list)
+    # V2.0 hybrid relevance (RS_final) and its explainable parts.
+    relevance_score: float | None = Field(default=None, ge=0, le=100)
+    relevance_label: str = "not_scored"
+    relevance_basis: str = "none"
+    llm_relevance: float | None = Field(default=None, ge=0, le=100)
+    self_citation: str = "none"
+    metadata_severity: str = "none"
+    evidence_kind: str | None = None
+    # As printed in the reference list: lets readers name a reference by its
+    # author ("the Axelsson one") and lets reports show who wrote what.
+    year: str | None = None
+    authors: list[str] = Field(default_factory=list)
 
 
 class ReviewProjection(Contract):
-    schema_version: Literal["review-v3"] = "review-v3"
-    policy_version: Literal["evidence-review-v3"] = "evidence-review-v3"
+    schema_version: Literal["review-v4"] = "review-v4"
+    policy_version: Literal["evidence-review-v4"] = "evidence-review-v4"
     title: str
     processing_status: Literal["completed", "completed_with_issues", "legacy_unverified"]
     review_status: Literal["not_reviewed"] = "not_reviewed"
@@ -44,3 +56,5 @@ class ReviewProjection(Contract):
     references: list[ReviewReference]
     findings: list[ReviewFinding]
     limitations: list[str]
+    # Manuscript-level analysis summaries (self-citation pattern, literature gaps).
+    analysis: dict = Field(default_factory=dict)

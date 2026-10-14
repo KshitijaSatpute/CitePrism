@@ -2,7 +2,9 @@
 param(
     [string]$PythonLauncher = "py",
     [string]$PythonVersion = "3.12",
-    [switch]$GenerateSigningKey
+    [switch]$GenerateSigningKey,
+    # Install sentence-transformers for local semantic similarity (adds PyTorch).
+    [switch]$WithEmbeddings
 )
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
@@ -17,6 +19,10 @@ try {
     & $python -m pip install --upgrade pip
     & $python -m pip install -r requirements-phase4.txt -r requirements-dev.txt
     if ($LASTEXITCODE -ne 0) { throw "Python dependency installation failed." }
+    if ($WithEmbeddings) {
+        & $python -m pip install -r requirements-embeddings.txt
+        if ($LASTEXITCODE -ne 0) { throw "Embedding model dependencies failed to install." }
+    }
 
     if (-not (Test-Path .env)) { Copy-Item env.example .env }
 
@@ -29,8 +35,10 @@ try {
         } else {
             & $python -c "from src.workspace.signing import Signer; print(Signer.generate_key(r'$keyPath'))"
             if ($LASTEXITCODE -ne 0) { throw "Could not generate the export signing key." }
-            Write-Host "Export signing key written to $keyPath"
-            Write-Host "Set CITEPRISM_EXPORT_SIGNING_KEY=$keyPath in .env, and keep this file out of version control."
+            Write-Host "Export signing key written to $keyPath (secrets\ is ignored by git; never commit it)."
+        }
+        if (-not (Select-String -Path .env -Pattern '^\s*CITEPRISM_EXPORT_SIGNING_KEY=' -Quiet)) {
+            Add-Content -Path .env -Value "`nCITEPRISM_EXPORT_SIGNING_KEY=secrets/export-signing.key"
         }
     }
 

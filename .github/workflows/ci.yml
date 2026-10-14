@@ -2,7 +2,20 @@ name: citeprism-regression
 on: [push, pull_request]
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: No secrets are tracked
+        run: python scripts/check_no_secrets.py
   deterministic:
     strategy:
       matrix:
@@ -16,11 +29,15 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - run: python -m pip install -r requirements-phase3.txt
+      # Phase 4 and V2.0 code needs pyjwt, cryptography and psycopg-pool, which
+      # the Phase 3 requirements do not include. Install the full runtime.
+      - run: python -m pip install -r requirements-phase4.txt -r requirements-ci.txt
       - run: python -m compileall -q config database src ui tests scripts database_manager.py pipeline_orchestrator.py streamlit_app.py citeprism_api.py
       - run: python scripts/verify_phase2.py
       - run: python -m unittest tests.test_phase3_auth tests.test_phase3_workspace tests.test_phase3_api -v
       - run: python -m unittest tests.test_phase4_contracts tests.test_phase4_workspace tests.test_phase4_runtime tests.test_phase4_evidence tests.test_phase4_api -v
+      - name: CitePrism V2.0 requirement acceptance tests
+        run: python -m unittest tests.test_v2_requirements tests.test_assistant tests.test_provider_fallback tests.test_coverage_providers tests.test_author_year tests.test_book_references tests.test_chat_breadth tests.test_injection_benchmark tests.test_data_policy tests.test_conversation tests.test_hardening tests.test_review_fixes tests.test_real_report_542 -v
       - run: python -c "from src.webapi.app import app; assert app.openapi()['info']['version'] == '1.0.0'"
       - run: git diff --check
   react-production-build:
@@ -34,6 +51,8 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+        working-directory: web
+      - run: npm run typecheck
         working-directory: web
       - run: npm run build
         working-directory: web
@@ -61,7 +80,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: python -m pip install -r requirements-phase3.txt
+      - run: python -m pip install -r requirements-phase4.txt
       - name: Create separate runtime role in disposable CI database
         run: >-
           python -c "import os, pathlib, psycopg;

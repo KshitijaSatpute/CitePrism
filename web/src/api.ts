@@ -1,7 +1,7 @@
 import type {
   Activity, Assignment, Audit, AuthorOverlap, Decision, DecisionDisposition, ExportRecord,
   Job, Manuscript, Member, MissingCitations, ReferenceEvidence, RepairPlanResponse, Review,
-  Session, SloReport,
+  Session, SloReport, AuditStartOptions, AssistantAnswer, AssistantTurn, DocumentStructure, DocumentPart,
 } from "./types";
 
 const API = import.meta.env.VITE_CITEPRISM_API ?? "/api/v1";
@@ -45,11 +45,15 @@ export const api = {
     const suffix = title ? `?title=${encodeURIComponent(title)}` : "";
     return request<Manuscript>(`/manuscripts${suffix}`, { method: "POST", body: form });
   },
-  startAudit: (manuscriptId: string) => request<{ audit: Audit; job: Job }>(
+  startAudit: (manuscriptId: string, options?: Partial<AuditStartOptions>) => request<{ audit: Audit; job: Job }>(
     `/manuscripts/${manuscriptId}/audits`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ force_parse: false, force_enrich: false, force_score: false, run_missing_citations: false }),
+      body: JSON.stringify({
+        force_parse: false, force_enrich: false, force_score: false,
+        run_missing_citations: options?.run_missing_citations ?? false,
+        author_orcids: options?.author_orcids ?? [],
+      }),
     }
   ),
   decide: (auditId: string, findingId: string, disposition: DecisionDisposition,
@@ -98,17 +102,36 @@ export const api = {
       }),
 
   exports: (auditId: string) => request<{ items: ExportRecord[] }>(`/audits/${auditId}/exports`),
-  createExport: (auditId: string, format: ExportRecord["format"]) =>
+  createExport: (auditId: string, format: ExportRecord["format"],
+                 options?: { variant?: "review" | "report"; style?: "standard" | "simple" }) =>
     request<ExportRecord>(`/audits/${auditId}/exports`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ format }),
+      body: JSON.stringify({ format, variant: options?.variant ?? "review", style: options?.style ?? "standard" }),
     }),
   exportUrl: (exportId: string) => `${API}/exports/${exportId}/download`,
 
   missingCitations: (auditId: string) =>
     request<MissingCitations>(`/audits/${auditId}/missing-citations`),
   authorOverlap: (auditId: string) => request<AuthorOverlap>(`/audits/${auditId}/author-overlap`),
+
+  /* ------------------------- Structure ------------------------- */
+  structure: (manuscriptId: string) => request<DocumentStructure>(`/manuscripts/${manuscriptId}/structure`),
+  splitIntoParts: (manuscriptId: string, parts?: number[]) =>
+    request<{ items: Array<{ part: DocumentPart; manuscript: Manuscript }> }>(`/manuscripts/${manuscriptId}/parts`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parts: parts ?? null }),
+    }),
+
+  /* ------------------------- Assistant ------------------------- */
+  assistantSummary: (auditId: string) => request<AssistantAnswer>(`/audits/${auditId}/assistant`),
+  ask: (auditId: string, question: string, history: AssistantTurn[] = []) =>
+    request<AssistantAnswer>(`/audits/${auditId}/assistant`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, history: history.slice(-12) }),
+    }),
 
   slos: (hours?: number) => request<SloReport>(`/telemetry/slos${hours ? `?hours=${hours}` : ""}`),
 };

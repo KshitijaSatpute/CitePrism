@@ -71,7 +71,7 @@ class Phase4StoreTests(unittest.TestCase):
         self.store = WorkspaceStore(self.root / "workspace.db")
         self.service = WorkspaceService(self.store, data_root=self.root / "data")
         self.pdf = self.root / "paper.pdf"
-        self.pdf.write_bytes(b"%PDF-1.7\nminimal test document")
+        self.pdf.write_bytes(b"%PDF-1.7\nminimal test document\n%%EOF\n")
 
     def tearDown(self):
         self.temp.cleanup()

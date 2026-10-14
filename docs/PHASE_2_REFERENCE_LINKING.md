@@ -63,9 +63,9 @@ rejected. No new external provider calls were made during these checks.
 ```powershell
 & {
     $ErrorActionPreference = "Stop"
-    Set-Location "C:\Users\keyur\Citeprism"
-    $linkingFolder = "C:\Users\keyur\Downloads\CitePrism_Reference_Linking"
-    Expand-Archive -LiteralPath "C:\Users\keyur\Downloads\CITEPRISM_PHASE2_REFERENCE_LINKING.zip" -DestinationPath $linkingFolder -Force
+    Set-Location "C:\Users\<you>\Citeprism"
+    $linkingFolder = "C:\Users\<you>\Downloads\CitePrism_Reference_Linking"
+    Expand-Archive -LiteralPath "C:\Users\<you>\Downloads\CITEPRISM_PHASE2_REFERENCE_LINKING.zip" -DestinationPath $linkingFolder -Force
     $linkingPython = ".\.venv-phase1\Scripts\python.exe"
     & $linkingPython "$linkingFolder\APPLY_REFERENCE_LINKING.py" --project-root . --apply
     if ($LASTEXITCODE -ne 0) { throw "Installer stopped. Read the message above." }

@@ -15,10 +15,15 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-TABLE_VERSION = "2026-05-defaults"
+TABLE_VERSION = "2026-10-defaults"
 
 # USD per 1,000,000 tokens: (input, output).
 DEFAULT_RATES: dict[str, tuple[float, float]] = {
+    # Gemini list prices from ai.google.dev/gemini-api/docs/pricing, October 2026.
+    # 3.6 Flash is discounted until 2026-12-31 ($1.50 / $7.50 afterwards).
+    "google:gemini-3.6-flash": (0.75, 3.75),
+    "google:gemini-3.5-flash": (1.50, 9.00),
+    "google:gemini-3.1-flash-lite": (0.25, 1.50),
     "google:gemini-2.5-flash": (0.30, 2.50),
     "google:gemini-2.5-pro": (1.25, 10.00),
     "openai:gpt-4o": (2.50, 10.00),

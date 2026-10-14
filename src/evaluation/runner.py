@@ -41,6 +41,7 @@ SUPPORT_PROJECTION = {
     "supports": "supports",
     "contradicts": "contradicts",
     "context_only": "context_only",
+    "unrelated": "unrelated",
     "insufficient_evidence": "insufficient_evidence",
     "not_assessed": "unassessable",
 }
@@ -71,7 +72,7 @@ def _predicted_support(reference: dict) -> str:
     ]
     if not decisions:
         return "unassessable"
-    for priority in ("contradicts", "supports", "context_only", "insufficient_evidence"):
+    for priority in ("contradicts", "supports", "unrelated", "context_only", "insufficient_evidence"):
         if priority in decisions:
             return SUPPORT_PROJECTION[priority]
     return "unassessable"
@@ -99,10 +100,31 @@ def _identity_confidence(reference: dict) -> float | None:
         return None
 
 
+RELEVANCE_PROJECTION = {
+    "relevant": "relevant",
+    "borderline": "borderline",
+    "potentially_irrelevant": "irrelevant",
+    "low_topical_similarity": "borderline",
+}
+
+
+def _relevance(reference: dict) -> dict:
+    return reference.get("relevance") or {}
+
+
 def evaluate_audit(artifact: dict, items: list[LabeledItem], *, bins: int = 10) -> dict:
     """Score one artifact against the labels for that manuscript."""
     from src.evidence.review import build_review
 
+    if artifact.get("schema_version") and "relevance" not in (
+        (artifact.get("scored_references") or [{}])[0] if artifact.get("scored_references") else {}
+    ):
+        # Artifacts scored before the analysis layer existed get it computed
+        # here, deterministically, so they can be evaluated on V2.0 criteria.
+        from types import SimpleNamespace
+
+        from src.evidence.analysis import analyze_artifact
+        artifact = analyze_artifact(artifact, SimpleNamespace())
     review = build_review(artifact)
     references = _reference_index(artifact)
     surfaced = {
@@ -116,6 +138,10 @@ def evaluate_audit(artifact: dict, items: list[LabeledItem], *, bins: int = 10) 
     extraction_pairs: list[tuple[str, str]] = []
     triage_pairs: list[tuple[bool, bool]] = []
     confidence_pairs: list[tuple[float, bool]] = []
+    relevance_pairs: list[tuple[str, str]] = []
+    relevance_scores: list[tuple[float, bool]] = []
+    self_citation_pairs: list[tuple[bool, bool]] = []
+    metadata_pairs: list[tuple[bool, bool]] = []
     unmatched: list[str] = []
 
     for item in items:
@@ -138,6 +164,21 @@ def evaluate_audit(artifact: dict, items: list[LabeledItem], *, bins: int = 10) 
             extraction_pairs.append((item.extraction_label, _predicted_extraction(reference)))
         if item.should_be_reviewed is not None:
             triage_pairs.append((bool(item.should_be_reviewed), key in surfaced))
+        relevance = _relevance(reference)
+        if item.relevance_label:
+            predicted = RELEVANCE_PROJECTION.get(relevance.get("label"))
+            if predicted is not None:
+                relevance_pairs.append((item.relevance_label, predicted))
+            if relevance.get("RS_final") is not None:
+                relevance_scores.append(
+                    (float(relevance["RS_final"]), item.relevance_label == "irrelevant")
+                )
+        if item.is_self_citation is not None:
+            predicted = bool((reference.get("self_citation") or {}).get("is_self_citation"))
+            self_citation_pairs.append((bool(item.is_self_citation), predicted))
+        if item.metadata_label:
+            severity = (reference.get("metadata_consistency") or {}).get("severity", "none")
+            metadata_pairs.append((item.metadata_label == "inconsistent", severity in {"major", "minor"}))
 
     return {
         "manuscript_title": review["title"],
@@ -148,6 +189,9 @@ def evaluate_audit(artifact: dict, items: list[LabeledItem], *, bins: int = 10) 
         "support": classification_report(support_pairs) if support_pairs else None,
         "extraction": classification_report(extraction_pairs) if extraction_pairs else None,
         "triage": binary_report(triage_pairs) if triage_pairs else None,
+        "relevance": classification_report(relevance_pairs) if relevance_pairs else None,
+        "self_citation": binary_report(self_citation_pairs) if self_citation_pairs else None,
+        "metadata": binary_report(metadata_pairs) if metadata_pairs else None,
         "calibration": (
             {
                 "samples": len(confidence_pairs),
@@ -170,6 +214,10 @@ def evaluate_audit(artifact: dict, items: list[LabeledItem], *, bins: int = 10) 
             "extraction": extraction_pairs,
             "triage": triage_pairs,
             "confidence": confidence_pairs,
+            "relevance": relevance_pairs,
+            "relevance_scores": relevance_scores,
+            "self_citation": self_citation_pairs,
+            "metadata": metadata_pairs,
         },
     }
 
@@ -206,13 +254,11 @@ def evaluate_dataset(
                 resolved[digest] = document
 
     per_manuscript = []
-    combined: dict[str, list] = {
-        "identity": [],
-        "support": [],
-        "extraction": [],
-        "triage": [],
-        "confidence": [],
-    }
+    keys = ("identity", "support", "extraction", "triage", "confidence", "relevance",
+            "relevance_scores", "self_citation", "metadata")
+    combined: dict[str, list] = {key: [] for key in keys}
+    groups: list[dict] = []  # per-manuscript pairs, for the cluster bootstrap
+    by_domain: dict[str, dict[str, list]] = {}
     missing: list[str] = []
 
     for digest in sorted({item.manuscript_sha256 for item in dataset.items}):
@@ -220,12 +266,32 @@ def evaluate_dataset(
         if artifact is None:
             missing.append(digest)
             continue
-        result = evaluate_audit(artifact, dataset.by_manuscript(digest), bins=bins)
-        for key, pairs in result.pop("_pairs").items():
-            combined[key].extend(pairs)
-        per_manuscript.append({"manuscript_sha256": digest, **result})
+        items = dataset.by_manuscript(digest)
+        result = evaluate_audit(artifact, items, bins=bins)
+        pairs = result.pop("_pairs")
+        groups.append(pairs)
+        domain = next((item.domain for item in items if item.domain), "unspecified")
+        bucket = by_domain.setdefault(domain, {key: [] for key in keys})
+        for key, values in pairs.items():
+            combined[key].extend(values)
+            bucket[key].extend(values)
+        per_manuscript.append({"manuscript_sha256": digest, "domain": domain, **result})
 
     annotator_pairs = _annotator_pairs(dataset)
+    uncertainty = _uncertainty(groups, bins)
+    domains = {
+        domain: {
+            "manuscripts": sum(1 for row in per_manuscript if row["domain"] == domain),
+            "identity_accuracy": classification_report(values["identity"])["accuracy"]
+            if values["identity"] else None,
+            "support_accuracy": classification_report(values["support"])["accuracy"]
+            if values["support"] else None,
+            "relevance_macro_f1": classification_report(values["relevance"])["macro_f1"]
+            if values["relevance"] else None,
+            "triage_recall": binary_report(values["triage"])["recall"] if values["triage"] else None,
+        }
+        for domain, values in sorted(by_domain.items())
+    }
 
     return {
         "dataset": dataset.summary(),
@@ -243,6 +309,13 @@ def evaluate_dataset(
             if combined["extraction"]
             else None,
             "triage": binary_report(combined["triage"]) if combined["triage"] else None,
+            "relevance": classification_report(combined["relevance"])
+            if combined["relevance"] else None,
+            "relevance_detector": _relevance_detector(combined["relevance_scores"], bins,
+                                                      [group.get("relevance_scores", []) for group in groups]),
+            "self_citation": binary_report(combined["self_citation"])
+            if combined["self_citation"] else None,
+            "metadata": binary_report(combined["metadata"]) if combined["metadata"] else None,
             "calibration": (
                 {
                     "samples": len(combined["confidence"]),
@@ -260,6 +333,8 @@ def evaluate_dataset(
                 else None
             ),
         },
+        "uncertainty": uncertainty,
+        "domains": domains,
         "annotator_agreement": annotator_pairs,
         "limitations": [
             "Metrics describe agreement with these annotators on these manuscripts.",
@@ -269,6 +344,61 @@ def evaluate_dataset(
             "A small or single-annotator dataset cannot support a generalization claim.",
         ],
     }
+
+
+def _relevance_detector(scores: list[tuple[float, bool]], bins: int,
+                        groups: list[list[tuple[float, bool]]] | None = None) -> dict | None:
+    """How well RS_final separates irrelevant citations, and where to cut it.
+
+    The recommended threshold is the F1-optimal cut-off on this dataset. It is
+    a candidate for `BORDERLINE_THRESHOLD`, to be confirmed on held-out data —
+    tuning and reporting on the same set overstates performance.
+    """
+    if not scores:
+        return None
+    from src.evaluation.metrics import auroc, cross_validated_threshold, threshold_sweep
+
+    sweep = threshold_sweep(scores, lower_is_positive=True)
+    relevance_as_probability = [(score / 100.0, not irrelevant) for score, irrelevant in scores]
+    return {
+        "samples": len(scores),
+        "positives": sum(1 for _, irrelevant in scores if irrelevant),
+        "auroc": auroc([(100.0 - score, irrelevant) for score, irrelevant in scores]),
+        "recommended_threshold": sweep["best"],
+        "cross_validated": cross_validated_threshold(groups or []),
+        "calibration": {
+            "signal": "RS_final / 100 as P(relevant)",
+            "brier_score": brier_score(relevance_as_probability),
+            "expected_calibration_error": expected_calibration_error(relevance_as_probability, bins=bins),
+            "reliability": calibration_bins(relevance_as_probability, bins=bins),
+        },
+        "note": "Tune thresholds on one split and report on another.",
+    }
+
+
+def _uncertainty(groups: list[dict], bins: int) -> dict:
+    """95% manuscript-level bootstrap intervals for the headline metrics."""
+    from src.evaluation.metrics import bootstrap_interval
+
+    def pooled(key, report):
+        def statistic(sample):
+            values = [pair for group in sample for pair in group.get(key, [])]
+            return report(values) if values else None
+        return statistic
+
+    intervals = {
+        "identity_accuracy": pooled("identity", lambda v: classification_report(v)["accuracy"]),
+        "support_macro_f1": pooled("support", lambda v: classification_report(v)["macro_f1"]),
+        "relevance_macro_f1": pooled("relevance", lambda v: classification_report(v)["macro_f1"]),
+        "triage_recall": pooled("triage", lambda v: binary_report(v)["recall"]),
+        "triage_precision": pooled("triage", lambda v: binary_report(v)["precision"]),
+        "identity_ece": pooled("confidence", lambda v: expected_calibration_error(v, bins=bins)),
+    }
+    result = {}
+    for name, statistic in intervals.items():
+        if any(group.get(name.split("_")[0] if name != "identity_ece" else "confidence") for group in groups):
+            result[name] = bootstrap_interval(groups, statistic)
+    return result
 
 
 def _annotator_pairs(dataset: EvaluationDataset) -> dict | None:

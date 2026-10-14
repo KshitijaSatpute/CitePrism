@@ -34,3 +34,15 @@ web/vite.config.d.ts
 .trust-verify/
 
 .phase2-backups/
+
+# Secrets: export signing keys and any private key material. Never commit these.
+secrets/*
+!secrets/README.md
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.env.*
+!env.example

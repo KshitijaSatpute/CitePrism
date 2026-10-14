@@ -128,7 +128,14 @@ def capture(kernel, version, raw, artifact):
                 statement='Recorded model proposal; human interpretation review remains outstanding.',
                 payload=observation, created_at=timestamp), 'evidence')
             for qindex, quote in enumerate(observation.get('validated_quotes', [])):
-                located = locate_quote(quote['text'], snapshot.get('text', ''))
+                source = snapshot.get('text', '')
+                if quote.get('located_in') == 'snapshot_abstract':
+                    source = snapshot.get('abstract') or ''
+                    if not source or digest_text(source) != snapshot.get('abstract_sha256'):
+                        raise TrustIntegrityError('Source abstract checksum mismatch')
+                located = locate_quote(quote['text'], source)
+                if located is not None and quote.get('located_in'):
+                    located['located_in'] = quote['located_in']
                 if located != quote or observation.get('status') != 'grounded_proposal' or not selected_id:
                     raise TrustIntegrityError('Source quotation is not valid for the selected candidate')
                 add(Evidence(id=derived_uuid(runid, 'source-quote', uid, index, qindex), tenant_id=tenant,

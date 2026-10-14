@@ -14,42 +14,7 @@ from src.workspace.models import AuditOptions
 from src.workspace.service import WorkspaceService
 from src.workspace.store import WorkspaceStore
 
-TENANT = "00000000-0000-4000-8000-000000000001"
-OTHER_TENANT = "00000000-0000-4000-8000-000000000002"
-
-
-def evidence_artifact():
-    """An artifact with one system issue, so repairs have something to plan."""
-    return {
-        "schema_version": SCHEMA_VERSION,
-        "manuscript_metadata": {"title": "API contract paper", "authors": ["Ada Lovelace"]},
-        "citations_in_text": [],
-        "scored_references": [
-            {
-                "reference_uid": "api-reference",
-                "ref_id": "[1]",
-                "original_data": {
-                    "raw_text": "[1] A source",
-                    "parsed": {"title": "A source", "authors": ["Lovelace, A"]},
-                    "extraction_status": "located",
-                    "extraction_issues": [],
-                    "source_locations": [{"page": 2}],
-                },
-                "resolution": {"status": "resolved", "metadata_differences": []},
-                "external_metadata": {"doi": "10.1/example"},
-                "citation_count": 1,
-                "evidence_status": "assessment_unavailable",
-                "claim_assessment": "not_assessed",
-                "claim_assessments": [
-                    {"task_id": "t1", "status": "assessment_unavailable", "error_code": "timeout"}
-                ],
-            }
-        ],
-        "missing_citations": [
-            {"title": "A search lead", "authors": "Q", "year": "2024", "rationale": "related"}
-        ],
-        "literature_search_metadata": {"provider": "google", "model": "gemini-2.5-flash"},
-    }
+from tests.workspace_fixtures import OTHER_TENANT, TENANT, evidence_artifact  # noqa: E402
 
 
 class Phase4ApiTests(unittest.TestCase):
@@ -67,7 +32,7 @@ class Phase4ApiTests(unittest.TestCase):
 
     def completed_audit(self):
         manuscript, _ = self.service.register_bytes(
-            TENANT, b"%PDF-1.7\nAPI test", original_filename="api.pdf", actor_id="tester"
+            TENANT, b"%PDF-1.7\nAPI test\n%%EOF\n", original_filename="api.pdf", actor_id="tester"
         )
         audit, job = self.service.create_audit(TENANT, manuscript.id, AuditOptions(), "tester")
         self.store.claim_job(TENANT, job.id, "test-worker")
@@ -214,7 +179,7 @@ class Phase4ApiTests(unittest.TestCase):
         ).json()
         manifest = self.client.get(f"/api/v1/exports/{record['id']}/manifest").json()["manifest"]
         names = {item["name"] for item in manifest["files"]}
-        self.assertEqual(names, {"review.json", "review.html", "review.pdf"})
+        self.assertEqual(names, {"review.json", "review.html", "review.pdf", "report.pdf"})
         self.assertTrue(all(len(item["sha256"]) == 64 for item in manifest["files"]))
         self.assertIn("signature", manifest)
         self.assertTrue(manifest["limitations"])
@@ -238,6 +203,52 @@ class Phase4ApiTests(unittest.TestCase):
         leads = self.client.get(f"/api/v1/audits/{self.audit.id}/missing-citations").json()
         self.assertEqual(len(leads["items"]), 1)
         self.assertEqual(leads["items"][0]["verification_status"], "unverified_model_suggestion")
+
+    def test_assistant_summarises_and_answers_from_the_audit(self):
+        summary = self.client.get(f"/api/v1/audits/{self.audit.id}/assistant").json()
+        self.assertEqual(summary["intent"], "overview")
+        self.assertIn("1 reference", summary["text"])
+        self.assertEqual(summary["grounding"], "audit_results")
+        self.assertTrue(summary["suggestions"])
+
+        answer = self.client.post(f"/api/v1/audits/{self.audit.id}/assistant",
+                                  json={"question": "Explain reference 1"}).json()
+        self.assertEqual(answer["intent"], "reference")
+        self.assertEqual(answer["references"][0]["marker"], "[1]")
+        self.assertIn("Check did not finish", " ".join(answer["points"]))
+
+    def test_a_book_is_detected_and_split_into_chapters(self):
+        volume = Path(__file__).parent / "fixtures" / "evidence" / "edited_volume.pdf"
+        book, _ = self.service.register_bytes(TENANT, volume.read_bytes(), original_filename="volume.pdf",
+                                              actor_id="tester", title="Lehren und Lernen")
+        structure = self.client.get(f"/api/v1/manuscripts/{book.id}/structure").json()
+        self.assertTrue(structure["multi_part"])
+        self.assertEqual([part["references"] for part in structure["parts"]], [5, 7])
+
+        created = self.client.post(f"/api/v1/manuscripts/{book.id}/parts", json={"parts": [2]})
+        self.assertEqual(created.status_code, 201)
+        items = created.json()["items"]
+        self.assertEqual(len(items), 1)
+        child = items[0]["manuscript"]
+        self.assertTrue(child["title"].startswith("2. Feedback that works"))
+        self.assertTrue(child["title"].endswith("— Lehren und Lernen"))
+        self.assertEqual(child["original_filename"], "volume_ch02_p5-6.pdf")   # never the stored hash
+        titles = [item["title"] for item in self.client.get("/api/v1/manuscripts").json()["items"]]
+        self.assertIn("Lehren und Lernen", titles)          # the original is kept
+
+    def test_a_single_paper_cannot_be_split(self):
+        response = self.client.post(f"/api/v1/manuscripts/{self.manuscript.id}/parts", json={})
+        self.assertIn(response.status_code, {404, 422})
+
+    def test_assistant_rejects_oversized_questions(self):
+        # Questions may be up to 1,000 characters (long, vague messages in everyday words).
+        response = self.client.post(f"/api/v1/audits/{self.audit.id}/assistant", json={"question": "x" * 1001})
+        self.assertEqual(response.status_code, 422)
+
+    def test_assistant_is_tenant_scoped(self):
+        response = self.client.get(f"/api/v1/audits/{self.audit.id}/assistant",
+                                   headers={"X-CitePrism-Tenant": OTHER_TENANT})
+        self.assertIn(response.status_code, {403, 404})
 
     # -- telemetry and evaluation ------------------------------------------
     def test_slo_endpoint_returns_every_objective(self):
@@ -268,6 +279,7 @@ class Phase4ApiTests(unittest.TestCase):
             "/api/v1/audits/{audit_id}/repairs",
             "/api/v1/audits/{audit_id}/exports",
             "/api/v1/audits/{audit_id}/author-overlap",
+            "/api/v1/audits/{audit_id}/assistant",
             "/api/v1/telemetry/slos",
         ):
             self.assertIn(path, paths, path)

@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from datetime import datetime, timezone
 
-from src.evidence.providers import JsonProvider
+from src.evidence.providers import build_json_provider
 from src.utils.safe_io import atomic_write_json
 
 logger = logging.getLogger(__name__)
@@ -80,10 +80,11 @@ def generate_missing_citations(scored_json_path: Path, config):
     # 3. Call the LLM
     try:
         provider = getattr(config, "LLM_PROVIDER", "google")
-        model_name = config.GOOGLE_MODEL if provider == "google" else config.OPENAI_MODEL
-        key = config.GOOGLE_API_KEY if provider == "google" else config.OPENAI_API_KEY
-        client = JsonProvider(provider, key, model_name, 4000,
-                              Path(getattr(config, "DATA_DIR", "data")) / "debug" / "search_calls")
+        model_name = {"google": getattr(config, "GOOGLE_MODEL", None),
+                      "openai": getattr(config, "OPENAI_MODEL", None),
+                      "openai_compatible": getattr(config, "OPENAI_COMPATIBLE_MODEL", None)}.get(provider)
+        client = build_json_provider(config, provider, model_name, 4000,
+                                     Path(getattr(config, "DATA_DIR", "data")) / "debug" / "search_calls")
         response_text = client.generate(prompt, purpose="unverified_search_leads", prompt_version="search-leads-v3")
         data["provider_runs"] = data.get("provider_runs", []) + client.recorder.records
 

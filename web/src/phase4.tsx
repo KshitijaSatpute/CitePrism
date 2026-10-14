@@ -158,24 +158,40 @@ export function RepairsView({ audit, session, onStarted }: {
 /* ------------------------------------------------------------------ */
 /* Exports                                                             */
 /* ------------------------------------------------------------------ */
-const FORMATS: Array<{ value: ExportRecord["format"]; label: string; detail: string }> = [
-  { value: "bundle", label: "Signed bundle", detail: "PDF, HTML, JSON and a signed manifest" },
-  { value: "pdf", label: "PDF", detail: "Paginated copy for filing or print" },
+type ExportChoice = ExportRecord["format"] | "report" | "report-simple";
+const FORMATS: Array<{ value: ExportChoice; label: string; detail: string }> = [
+  { value: "bundle", label: "Signed bundle", detail: "PDF, HTML, JSON, the plain-language report and a signed manifest" },
+  { value: "report", label: "Plain-language report (PDF)", detail: "What was found and a step-by-step checklist" },
+  { value: "report-simple", label: "Report in simple words (PDF)", detail: "The same, for readers with no background" },
+  { value: "pdf", label: "Review package (PDF)", detail: "The formal record for filing or print" },
   { value: "html", label: "HTML", detail: "Self-contained portable page" },
   { value: "json", label: "JSON", detail: "The full review projection" },
 ];
 
+function exportLabel(record: ExportRecord) {
+  const manifest = record.manifest ?? {};
+  if (manifest.variant === "report") return manifest.report_style === "simple" ? "Report (simple)" : "Report";
+  return readable(record.format);
+}
+
 export function ExportsView({ audit, session }: { audit: Audit; session: Session | null }) {
   const { data, error, busy, reload } = useResource<{ items: ExportRecord[] }>(
     () => api.exports(audit.id), [audit.id]);
-  const [format, setFormat] = useState<ExportRecord["format"]>("bundle");
+  const [format, setFormat] = useState<ExportChoice>("bundle");
   const [working, setWorking] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const allowed = session?.permissions.includes("export.create") ?? true;
 
   async function create() {
     setWorking(true); setProblem(null);
-    try { await api.createExport(audit.id, format); reload(); }
+    try {
+      if (format === "report" || format === "report-simple") {
+        await api.createExport(audit.id, "pdf", { variant: "report", style: format === "report" ? "standard" : "simple" });
+      } else {
+        await api.createExport(audit.id, format);
+      }
+      reload();
+    }
     catch (reason) {
       setProblem(reason instanceof Error ? reason.message : "The export could not be created");
     } finally { setWorking(false); }
@@ -186,7 +202,7 @@ export function ExportsView({ audit, session }: { audit: Audit; session: Session
     <div className="toolbar">
       <label className="filter"><span>Format</span>
         <select value={format} onChange={event =>
-          setFormat(event.target.value as ExportRecord["format"])}>
+          setFormat(event.target.value as ExportChoice)}>
           {FORMATS.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}
         </select>
       </label>
@@ -211,7 +227,7 @@ export function ExportsView({ audit, session }: { audit: Audit; session: Session
       <th>Format</th><th>Size</th><th>SHA-256</th><th>Signature</th><th>Created</th><th></th>
     </tr></thead><tbody>
       {data.items.map(record => <tr key={record.id}>
-        <td><Pill>{readable(record.format)}</Pill></td>
+        <td><Pill>{exportLabel(record)}</Pill></td>
         <td>{bytes(record.size_bytes)}</td>
         <td><code title={record.content_sha256}>{record.content_sha256.slice(0, 16)}…</code></td>
         <td>
@@ -233,21 +249,52 @@ export function ExportsView({ audit, session }: { audit: Audit; session: Session
 }
 
 /* ------------------------------------------------------------------ */
-/* Literature-search candidates                                        */
+/* Possibly missing literature                                         */
 /* ------------------------------------------------------------------ */
+const VERIFICATION_TONE: Record<string, string> = {
+  verified: "safe",
+  ambiguous_match: "warn",
+  no_matching_record: "danger",
+  verification_unavailable: "neutral",
+  unverified_model_suggestion: "warn",
+};
+
 export function MissingCitationsView({ audit }: { audit: Audit }) {
   const { data, error, busy } = useResource<MissingCitations>(
     () => api.missingCitations(audit.id), [audit.id]);
-  if (busy) return <Loading label="Loading search leads…" />;
+  if (busy) return <Loading label="Loading literature analysis…" />;
   if (error) return <Problem message={error} />;
   if (!data) return null;
+  const cocitation = data.cocitation;
+  const candidates = cocitation?.candidates ?? [];
 
-  return <Panel eyebrow="Literature search" title="Unverified candidates"
-    blurb={data.guidance}>
-    {!data.items.length && <div className="empty">
-      <div className="empty-mark">◇</div><h2>No candidates were generated</h2>
-      <p>Run an audit with the full-audit option to generate literature-search leads.</p>
-    </div>}
+  return <Panel eyebrow="Literature gaps" title="Possibly missing literature" blurb={data.guidance}>
+    <h3>Frequently co-cited by this manuscript's own references</h3>
+    {cocitation?.status === "offline_mode" && <p className="muted">Not available in offline mode.</p>}
+    {cocitation?.status === "not_run" && <p className="muted">Run a new audit to compute co-citation candidates.</p>}
+    {cocitation && cocitation.status === "completed" && !candidates.length && <p className="muted">
+      No work is cited by {cocitation.min_support ?? 2} or more of the {cocitation.references_with_graph} references
+      that have citation-graph data and is missing from this bibliography.
+    </p>}
+    {candidates.map(item => <article className="evidence-card" key={item.openalex_id}>
+      <header><span>{item.support_count}</span><div>
+        <strong>{item.title ?? item.openalex_id}</strong>
+        <small>{item.authors.slice(0, 3).join(", ")}{item.authors.length > 3 ? " et al." : ""}
+          {item.year ? ` · ${item.year}` : ""}{item.venue ? ` · ${item.venue}` : ""}</small>
+      </div></header>
+      <section>
+        <p>Cited by {item.support_count} of this manuscript's references: {item.supporting_references.join(", ")}.
+          {item.cited_by_count != null ? ` Cited ${item.cited_by_count} times overall.` : ""}</p>
+        <div className="status-row">
+          <Pill tone="safe">Indexed record</Pill>
+          {item.doi && <a className="button ghost" href={`https://doi.org/${item.doi}`} target="_blank" rel="noreferrer">DOI ↗</a>}
+          <a className="button ghost" href={item.url} target="_blank" rel="noreferrer">OpenAlex ↗</a>
+        </div>
+      </section>
+    </article>)}
+
+    <h3>Language-model search leads</h3>
+    {!data.items.length && <p className="muted">No leads were generated. Choose “Full audit” when starting an audit to generate them.</p>}
     {data.items.map(item => <article className="evidence-card" key={item.id}>
       <header><span>◇</span><div>
         <strong>{item.title}</strong>
@@ -255,8 +302,11 @@ export function MissingCitationsView({ audit }: { audit: Audit }) {
       </div></header>
       <section>
         <p>{item.rationale}</p>
+        {item.matched_record && <p className="muted">Matched record: {item.matched_record.title}
+          {item.matched_record.year ? ` (${item.matched_record.year})` : ""}
+          {item.matched_record.doi ? ` · doi:${item.matched_record.doi}` : ""}</p>}
         <div className="status-row">
-          <Pill tone="warn">{readable(item.verification_status)}</Pill>
+          <Pill tone={VERIFICATION_TONE[item.verification_status] ?? "warn"}>{readable(item.verification_status)}</Pill>
           {item.already_cited && <Pill tone="safe">Already in the bibliography</Pill>}
           <a className="button ghost" href={item.search_url} target="_blank" rel="noreferrer">
             Search a scholarly index ↗
@@ -264,41 +314,64 @@ export function MissingCitationsView({ audit }: { audit: Audit }) {
         </div>
       </section>
     </article>)}
+    {(data.limitations ?? []).map(text => <p className="muted" key={text}>{text}</p>)}
     <p className="muted">{data.not_a_claim}</p>
   </Panel>;
 }
 
 /* ------------------------------------------------------------------ */
-/* Author overlap                                                      */
+/* Self-citation and author overlap                                    */
 /* ------------------------------------------------------------------ */
+const TIER_LABEL: Record<string, string> = {
+  orcid: "ORCID-confirmed",
+  name_initial: "Surname and initial",
+  surname: "Surname only (not counted)",
+};
+
 export function AuthorOverlapView({ audit }: { audit: Audit }) {
   const { data, error, busy } = useResource<AuthorOverlap>(
     () => api.authorOverlap(audit.id), [audit.id]);
-  if (busy) return <Loading label="Building the overlap view…" />;
+  if (busy) return <Loading label="Building the self-citation view…" />;
   if (error) return <Problem message={error} />;
   if (!data) return null;
 
   const maximum = Math.max(1, ...data.nodes.map(node => node.reference_count));
+  const analysis = data.self_citation;
+  const counts = analysis?.counts ?? {};
 
-  return <Panel eyebrow="Descriptive analysis" title="Author overlap"
-    blurb={data.guidance}>
-    <div className="metrics">
-      <div className="metric"><span>References</span>
-        <strong>{data.counts.total_references}</strong><small>In this bibliography</small></div>
-      <div className="metric"><span>Share a manuscript author</span>
-        <strong>{data.counts.references_sharing_a_manuscript_author}</strong>
-        <small>{(data.counts.share_of_references * 100).toFixed(0)}% of references</small></div>
-      <div className="metric"><span>Distinct reference authors</span>
-        <strong>{data.counts.distinct_reference_authors}</strong><small>After normalization</small></div>
-    </div>
-
-    <h3>Manuscript authors appearing in the bibliography</h3>
-    {!data.edges.length && <p className="muted">No manuscript author appears in a reference.</p>}
-    {Boolean(data.edges.length) && <ul className="plain-list">
-      {data.edges.map((edge, index) => <li key={`${edge.author_id}-${index}`}>
-        <strong>{edge.author}</strong> appears in reference {edge.reference}
-      </li>)}
-    </ul>}
+  return <Panel eyebrow="Self-citation" title="Self-citation patterns" blurb={data.guidance}>
+    {analysis && <>
+      <div className="metrics">
+        <div className="metric"><span>Self-citations</span>
+          <strong>{counts.self_citations ?? 0}</strong>
+          <small>{((counts.rate ?? 0) * 100).toFixed(0)}% of {counts.total_references ?? 0} references</small></div>
+        <div className="metric"><span>ORCID-confirmed</span>
+          <strong>{counts.orcid_confirmed ?? 0}</strong><small>Same person</small></div>
+        <div className="metric"><span>Name and initial</span>
+          <strong>{counts.name_initial_matches ?? 0}</strong><small>Probable match</small></div>
+        <div className="metric emphasis"><span>Questionable</span>
+          <strong>{analysis.questionable.length}</strong><small>Uncited or possibly irrelevant</small></div>
+      </div>
+      {analysis.patterns.length > 0 && <div className="notice" role="status">
+        <strong>Patterns for review</strong>
+        <ul className="plain-list">{analysis.patterns.map(pattern => <li key={pattern.code}>{pattern.detail}</li>)}</ul>
+      </div>}
+      {analysis.questionable.length > 0 && <>
+        <h3>Self-citations to check</h3>
+        <ul className="plain-list">{analysis.questionable.map(item => <li key={item.reference_id}>
+          <strong>{item.marker}</strong> — {TIER_LABEL[item.tier] ?? readable(item.tier)};
+          {" "}{item.reasons.map(reason => readable(reason).toLowerCase()).join(" and ")}
+        </li>)}</ul>
+      </>}
+      {analysis.references.length > 0 && <>
+        <h3>All author matches</h3>
+        <ul className="plain-list">{analysis.references.map(item => <li key={item.reference}>
+          <strong>{item.reference}</strong> <Pill tone={item.counted ? "warn" : "neutral"}>{TIER_LABEL[item.tier] ?? item.tier}</Pill>
+        </li>)}</ul>
+      </>}
+      <p className="muted">{analysis.identity_note}
+        {" "}ORCID iDs used: {[...(analysis.orcids.supplied ?? []), ...(analysis.orcids.front_matter ?? [])].join(", ") || "none — add them when starting an audit for confirmed matching."}</p>
+    </>}
 
     <h3>Most repeated reference authors</h3>
     {!data.repeated_authors.length && <p className="muted">No author recurs across references.</p>}
@@ -311,6 +384,83 @@ export function AuthorOverlapView({ audit }: { audit: Audit }) {
     </div>)}
     <p className="muted">{data.not_a_claim}</p>
   </Panel>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Relevance                                                           */
+/* ------------------------------------------------------------------ */
+const RELEVANCE_TONE: Record<string, string> = {
+  relevant: "safe",
+  borderline: "warn",
+  potentially_irrelevant: "danger",
+  low_topical_similarity: "neutral",
+  topic_only: "neutral",
+  not_scored: "neutral",
+};
+const RELEVANCE_WORD: Record<string, string> = {
+  topic_only: "Topic only — claims not checked",
+};
+
+export function RelevancePill({ label, score, basis }: {
+  label?: string; score?: number | null; basis?: string;
+}) {
+  const value = label ?? "not_scored";
+  const title = basis && basis !== "none"
+    ? `Hybrid relevance (${readable(basis).toLowerCase()}). Uncalibrated default thresholds.`
+    : "No relevance signal was available.";
+  return <span className={`pill pill-${RELEVANCE_TONE[value] ?? "neutral"}`} title={title}>
+    {RELEVANCE_WORD[value] ?? readable(value)}{score != null ? ` · ${Math.round(score)}` : ""}
+  </span>;
+}
+
+/* ------------------------------------------------------------------ */
+/* Audit options                                                       */
+/* ------------------------------------------------------------------ */
+const ORCID = /^(\d{4}-\d{4}-\d{4}-\d{3}[\dX])$/;
+
+function orcidValid(value: string) {
+  const digits = value.replaceAll("-", "");
+  if (!ORCID.test(value)) return false;
+  let total = 0;
+  for (const character of digits.slice(0, -1)) total = (total + Number(character)) * 2;
+  const result = (12 - (total % 11)) % 11;
+  return digits.at(-1) === (result === 10 ? "X" : String(result));
+}
+
+export function AuditOptionsDialog({ onClose, onStart }: {
+  onClose: () => void;
+  onStart: (options: { run_missing_citations: boolean; author_orcids: string[] }) => Promise<void>;
+}) {
+  const [full, setFull] = useState(false);
+  const [orcids, setOrcids] = useState("");
+  const [busy, setBusy] = useState(false);
+  const entries = orcids.split(/[\s,;]+/)
+    .map(value => value.trim().replace(/^https?:\/\/orcid\.org\//i, "").toUpperCase())
+    .filter(Boolean);
+  const invalid = entries.filter(value => !orcidValid(value));
+
+  async function start() {
+    setBusy(true);
+    try { await onStart({ run_missing_citations: full, author_orcids: entries }); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="scrim"><div className="dialog" role="dialog" aria-modal="true" aria-labelledby="audit-options-title">
+    <div className="panel-head"><div><span className="eyebrow">New audit</span>
+      <h2 id="audit-options-title">Audit options</h2></div>
+      <button className="icon-button" aria-label="Close" onClick={onClose}>×</button></div>
+    <label className="choice-row"><input type="checkbox" checked={full} onChange={event => setFull(event.target.checked)} />
+      <span><strong>Full audit</strong><small>Also ask the language model for literature-search leads. Each lead is then
+        checked against the scholarly indexes. Adds one model call.</small></span></label>
+    <label className="rationale"><span>Author ORCID iDs <small>Optional</small></span>
+      <textarea rows={3} value={orcids} onChange={event => setOrcids(event.target.value)}
+        placeholder="0000-0002-1825-0097, 0000-0001-5109-3700" />
+      <small>With ORCID iDs, self-citations are matched to the same person rather than to a similar name.</small></label>
+    {invalid.length > 0 && <p className="field-error" role="alert">Not a valid ORCID iD: {invalid.join(", ")}</p>}
+    <div className="panel-actions"><button className="button ghost" onClick={onClose}>Cancel</button>
+      <button className="button primary" disabled={busy || invalid.length > 0} onClick={start}>
+        {busy ? "Starting…" : "Start audit"}</button></div>
+  </div></div>;
 }
 
 /* ------------------------------------------------------------------ */

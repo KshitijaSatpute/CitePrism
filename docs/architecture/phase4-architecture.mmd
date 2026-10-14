@@ -1,4 +1,4 @@
-%% CitePrism Phase 4 — the system as built.
+%% CitePrism 5.1 — Phase 4 runtime plus the V2.0 analysis layer, as built.
 %% Rendered to SVG/PNG by scripts/render_architecture.py (mermaid-cli).
 flowchart TB
     subgraph clients["Clients"]
@@ -32,8 +32,16 @@ flowchart TB
         PARSE["Extraction<br/>printed-entry anchoring"]
         RESOLVE["Multi-provider resolution<br/>OpenAlex · Crossref · Semantic Scholar<br/>merge · corroborate · preserve disagreement"]
         FULLTEXT["Open-access full text<br/>arXiv · PMC · Unpaywall"]
-        ASSESS["Grounded assessment<br/>claim + quotation checks"]
+        ASSESS["Grounded assessment<br/>claim + quotation checks<br/>passages selected from full text"]
+        SIM["Topic similarity<br/>sentence embeddings · HF inference<br/>lexical fallback (offline)"]
         PROJECT["build_review<br/>one projection for UI, export and audit"]
+    end
+
+    subgraph analysis["V2.0 analysis layer — deterministic, re-run every audit"]
+        REL["Hybrid relevance<br/>RS_final = 0.6 · RS_llm + 0.4 · RS_embed<br/>potentially irrelevant citations"]
+        SELF["Self-citation patterns<br/>ORCID · name+initial tiers<br/>rate · concentration · padding"]
+        META["Metadata consistency<br/>DOI · title · authors · year · venue<br/>unregistered DOI"]
+        GAPS["Literature gaps<br/>co-citation graph<br/>verified model leads"]
     end
 
     subgraph state["State"]
@@ -65,7 +73,15 @@ flowchart TB
     W1 --> EXEC
     W2 --> EXEC
 
-    EXEC --> OCR --> PARSE --> RESOLVE --> FULLTEXT --> ASSESS --> PROJECT
+    EXEC --> OCR --> PARSE --> RESOLVE --> FULLTEXT --> ASSESS --> REL
+    RESOLVE --> SIM --> REL
+    RESOLVE --> META
+    RESOLVE -->|"referenced_works"| GAPS
+    REL --> SELF
+    REL --> PROJECT
+    SELF --> PROJECT
+    META --> PROJECT
+    GAPS --> PROJECT
     PROJECT --> PG
     PROJECT --> OBJ
     PROJECT --> TRUST
@@ -80,3 +96,5 @@ flowchart TB
     classDef warn fill:#fdf3e3,stroke:#b8791f,color:#123
     class PG,TRUST,OBJ,JOBS store
     class REPAIR warn
+    classDef v2 fill:#eef0fb,stroke:#4c5bd4,stroke-width:2px,color:#123
+    class REL,SELF,META,GAPS,SIM v2

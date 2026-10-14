@@ -58,7 +58,7 @@ class ApiTests(unittest.TestCase):
 
     def completed_audit(self):
         manuscript, _ = self.service.register_bytes(
-            TENANT, b"%PDF-1.7\nAPI test", original_filename="api.pdf", actor_id="tester"
+            TENANT, b"%PDF-1.7\nAPI test\n%%EOF\n", original_filename="api.pdf", actor_id="tester"
         )
         audit, job = self.service.create_audit(TENANT, manuscript.id, AuditOptions(), "tester")
         self.store.claim_job(TENANT, job.id, "test-worker")
@@ -78,7 +78,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/v1/health").json()["api_version"], "v1")
         upload = self.client.post(
             "/api/v1/manuscripts",
-            files={"file": ("paper.pdf", b"%PDF-1.7\ncontract", "application/pdf")},
+            files={"file": ("paper.pdf", b"%PDF-1.7\ncontract\n%%EOF\n", "application/pdf")},
         )
         self.assertEqual(upload.status_code, 201)
         identifier = upload.json()["id"]

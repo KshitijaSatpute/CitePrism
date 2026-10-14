@@ -37,7 +37,42 @@ def display_name(value) -> str:
 
 
 def missing_citations(artifact: dict) -> dict:
-    """Unverified literature-search candidates produced for this manuscript."""
+    """Possibly missing literature: co-citation evidence plus verified model leads.
+
+    Co-citation candidates come from the citation graph of the manuscript's own
+    resolved references, so every one is a real, indexed record. Model leads
+    are shown with the outcome of resolving them against the scholarly indexes.
+    """
+    payload = _raw_search_leads(artifact)
+    gaps = artifact.get("literature_gap_analysis") or {}
+    verified = {item["id"]: item for item in gaps.get("suggestions") or [] if item.get("id")}
+    for item in payload["items"]:
+        check = verified.get(item["id"])
+        if check:
+            item["verification_status"] = check["verification_status"]
+            item["matched_record"] = check.get("matched_record")
+            item["already_cited"] = item["already_cited"] or bool(check.get("already_cited"))
+    cocitation = gaps.get("cocitation") or {}
+    payload["cocitation"] = {
+        "status": cocitation.get("status") or ("not_run" if not gaps else gaps.get("status")),
+        "references_with_graph": cocitation.get("references_with_graph", 0),
+        "min_support": cocitation.get("min_support"),
+        "candidates": cocitation.get("candidates", []),
+    }
+    payload["counts"] = gaps.get("counts", {})
+    payload["analysis_status"] = gaps.get("status", "not_run")
+    payload["limitations"] = gaps.get("limitations", [])
+    payload["available"] = bool(payload["items"] or payload["cocitation"]["candidates"])
+    payload["guidance"] = (
+        "Co-citation candidates are real works that several of this manuscript's own "
+        "references cite. Model leads are shown with whether a real record matches them; "
+        "a lead with no matching record may not exist and must never be cited unchecked."
+    )
+    return payload
+
+
+def _raw_search_leads(artifact: dict) -> dict:
+    """Model-generated literature-search leads, before verification."""
     candidates = artifact.get("missing_citations") or []
     metadata = artifact.get("literature_search_metadata") or {}
     cited_titles = {
@@ -162,8 +197,31 @@ def author_overlap(artifact: dict, *, minimum_shared: int = 1) -> dict:
         key=lambda node: (-node["reference_count"], node["label"]),
     )
 
+    analysis = artifact.get("self_citation_analysis") or {}
+    tiers = []
+    for reference in artifact.get("scored_references", []):
+        record = reference.get("self_citation") or {}
+        if record.get("tier") and record.get("tier") != "none":
+            tiers.append({
+                "reference": str(reference.get("ref_id") or ""),
+                "tier": record["tier"],
+                "counted": bool(record.get("is_self_citation")),
+                "matches": record.get("matches", []),
+                "questionable_reasons": record.get("questionable_reasons", []),
+            })
     return {
         "available": bool(nodes),
+        "self_citation": {
+            "method_version": analysis.get("method_version"),
+            "counts": analysis.get("counts", {}),
+            "patterns": analysis.get("patterns", []),
+            "questionable": analysis.get("questionable", []),
+            "by_author": analysis.get("by_author", {}),
+            "orcids": analysis.get("orcids", {}),
+            "thresholds": analysis.get("thresholds", {}),
+            "references": tiers,
+            "identity_note": analysis.get("identity_note"),
+        } if analysis else None,
         "manuscript_authors": manuscript_authors,
         "nodes": sorted(nodes.values(), key=lambda node: (-node["reference_count"], node["label"])),
         "edges": edges,
@@ -180,9 +238,10 @@ def author_overlap(artifact: dict, *, minimum_shared: int = 1) -> dict:
         },
         "method": "surname_normalization_v1",
         "guidance": (
-            "Overlap is matched on normalized surnames, so distinct people who "
-            "share a surname are counted together. Self-citation is a normal and "
-            "often necessary scholarly practice."
+            "Self-citations are matched by ORCID iD where available, otherwise by surname and "
+            "first initial; surname-only matches are shown but not counted. The repeated-author "
+            "chart groups by surname alone, so different people who share a surname appear "
+            "together there. Self-citation is a normal and often necessary scholarly practice."
         ),
         "not_a_claim": (
             "This view describes name repetition only. It does not measure bias, "

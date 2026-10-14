@@ -14,6 +14,9 @@ from src.utils.safe_io import atomic_write_json
 
 logger = logging.getLogger(__name__)
 TRANSIENT_ERRORS = {"service_unavailable", "rate_limit", "timeout", "provider_error"}
+# Failures that another model or provider may not share. Authentication and
+# request errors are configuration problems and are reported, not hidden.
+FALLBACK_ERRORS = TRANSIENT_ERRORS | {"model_unavailable", "empty_response"}
 
 
 def utc_now():
@@ -21,21 +24,27 @@ def utc_now():
 
 
 class ProviderFailure(RuntimeError):
-    def __init__(self, code, provider, *, status_code=None, attempts=None):
+    def __init__(self, code, provider, *, status_code=None, attempts=None, tried=None):
         self.code = code
+        self.tried = list(tried or [])
         self.provider = provider
         self.status_code = status_code
         self.attempts = attempts
         self.retryable = code in TRANSIENT_ERRORS
         actions = {"authentication": "Check the configured API key and access permissions.",
                    "service_unavailable": "The service is temporarily unavailable (HTTP 503). Wait a few minutes, then retry the audit.",
-                   "model_unavailable": "Check the configured model's availability for this account.",
+                   "model_unavailable": "The configured model is not available (HTTP 404); it may have been retired. Set a current model, e.g. GOOGLE_MODEL=gemini-3.6-flash.",
                    "rate_limit": "Provider quota or rate limit reached; retry later.",
                    "timeout": "Provider timed out; retry this stage.",
                    "invalid_request": "The provider rejected the request configuration.",
                    "empty_response": "The provider returned no usable text.",
                    "provider_error": "The provider could not complete this request."}
-        super().__init__(f"{provider}: {actions.get(code, actions['provider_error'])}")
+        message = f"{provider}: {actions.get(code, actions['provider_error'])}"
+        if len(self.tried) > 1:
+            message = (f"Every configured model failed ({', '.join(self.tried)}); the last error was "
+                       f"{message} Add another provider to LLM_FALLBACK_MODELS in .env "
+                       f"(for example a free Groq key or a local Ollama model) to keep audits running.")
+        super().__init__(message)
 
 
 def http_status(error):
@@ -173,9 +182,23 @@ def usage_dict(value):
 class JsonProvider:
     """Maintained Google SDK and existing OpenAI SDK behind the same extraction port."""
 
-    def __init__(self, provider, api_key, model, max_tokens, directory=None):
+    def __init__(self, provider, api_key, model, max_tokens, directory=None, base_url=None,
+                 recorder=None, thinking_budget=None):
         self.provider, self.model, self.max_tokens = provider, model, max_tokens
-        self.recorder = CallRecorder(directory)
+        self.recorder = recorder or CallRecorder(directory)
+        self.thinking_budget = thinking_budget
+        if provider == "openai_compatible":
+            # A local or self-hosted server speaking the OpenAI chat API: Ollama,
+            # vLLM, LM Studio, llama.cpp server. This is the offline deployment
+            # path; no data leaves the machine or network that hosts it.
+            if not base_url:
+                raise ProviderFailure("invalid_request", provider)
+            if not model:
+                raise ProviderFailure("model_unavailable", provider)
+            from openai import OpenAI
+            self.client = OpenAI(api_key=api_key or "not-required", base_url=base_url,
+                                 timeout=300, max_retries=0)
+            return
         if not api_key:
             raise ProviderFailure("authentication", provider)
         if provider == "google":
@@ -194,16 +217,24 @@ class JsonProvider:
                    "response_format": "json", "timeout_seconds": 120}
         if self.provider == "google":
             request["automatic_function_calling"] = False
+            generation = {"temperature": 0.1, "max_output_tokens": self.max_tokens,
+                          "response_mime_type": "application/json",
+                          "automatic_function_calling": {"disable": True}}
+            if self.thinking_budget is not None and supports_thinking_budget(self.model):
+                # Structured extraction needs no reasoning trace. Thinking spends the
+                # output budget and lengthens calls, which is when Flash answers 503.
+                generation["thinking_config"] = {"thinking_budget": int(self.thinking_budget)}
+                request["thinking_budget"] = int(self.thinking_budget)
             invoke = lambda: self.client.models.generate_content(
-                model=self.model, contents=prompt,
-                config={"temperature": 0.1, "max_output_tokens": self.max_tokens,
-                        "response_mime_type": "application/json",
-                        "automatic_function_calling": {"disable": True}})
+                model=self.model, contents=prompt, config=generation)
             decode = lambda response: (response.text, usage_dict(response.usage_metadata))
         else:
             invoke = lambda: self.client.chat.completions.create(
                 model=self.model, messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"}, max_tokens=self.max_tokens, temperature=0.1)
+            if self.provider == "openai_compatible":
+                request["timeout_seconds"] = 300
+                request["endpoint"] = "openai_compatible"
             decode = lambda response: (response.choices[0].message.content, usage_dict(response.usage))
         return self.recorder.call(provider=self.provider, model=self.model, purpose=purpose,
                                   prompt_version=prompt_version, request=request, invoke=invoke, decode=decode)
@@ -217,3 +248,151 @@ def strict_json(text):
     def reject_constant(_):
         raise ValueError("Non-finite numbers are not valid evidence JSON")
     return json.loads(value, parse_constant=reject_constant)
+
+
+def supports_thinking_budget(model):
+    """Gemini 2.5 Flash and Flash-Lite accept a zero thinking budget; Pro does not.
+
+    Gemini 3 models use a different control (thinking level). It is left at the
+    model default rather than sending a parameter the model might reject.
+    """
+    name = str(model or "").lower().split("/")[-1]
+    return name.startswith("gemini-2.5-flash")
+
+
+DEFAULT_FALLBACKS = {
+    # Current stable models with a free tier, each with its own quota. Gemini 2.0
+    # Flash was shut down on 2026-06-01 and 2.5 Flash is discontinued on
+    # 2026-10-16 (ai.google.dev/gemini-api/docs/deprecations); a retired model
+    # answers 404 "model_unavailable", which this chain treats as "try the next".
+    "google": ("gemini-3.1-flash-lite", "gemini-3.5-flash"),
+}
+
+
+def parse_fallback_chain(spec, primary_provider):
+    """`"gemini-3.1-flash-lite, openai_compatible:llama3.1"` -> [(provider, model), ...].
+
+    A bare model name means "same provider as the primary". `none` disables
+    fallback. An empty or missing value uses `DEFAULT_FALLBACKS`.
+    """
+    if spec is None or not str(spec).strip():
+        return [(primary_provider, model) for model in DEFAULT_FALLBACKS.get(primary_provider, ())]
+    text = str(spec).strip()
+    if text.lower() in {"none", "off", "false", "0"}:
+        return []
+    chain = []
+    for item in text.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        provider, _, model = item.partition(":")
+        if not model:
+            provider, model = primary_provider, provider
+        provider = provider.strip().lower()
+        if provider not in {"google", "openai", "openai_compatible"}:
+            raise ValueError(f"LLM_FALLBACK_MODELS: unknown provider '{provider}' in '{item}'")
+        chain.append((provider, model.strip()))
+    return chain
+
+
+class FallbackJsonProvider:
+    """Try the primary model, then each fallback, on failures another model may not share.
+
+    Every attempt on every model is written by one shared `CallRecorder`, so
+    the audit's provider record shows exactly which model produced each answer.
+    """
+
+    def __init__(self, targets):
+        if not targets:
+            raise ValueError("At least one model is required")
+        self.targets = list(targets)
+        self.recorder = self.targets[0].recorder
+        self.active = self.targets[0]
+
+    @property
+    def provider(self):
+        return self.active.provider
+
+    @property
+    def model(self):
+        return self.active.model
+
+    @property
+    def models(self):
+        return [f"{target.provider}:{target.model}" for target in self.targets]
+
+    def generate(self, prompt, purpose="extraction", prompt_version="extraction-v3"):
+        tried, last = [], None
+        for target in self.targets:
+            tried.append(f"{target.provider}:{target.model}")
+            try:
+                result = target.generate(prompt, purpose=purpose, prompt_version=prompt_version)
+            except ProviderFailure as failure:
+                if failure.code not in FALLBACK_ERRORS:
+                    raise
+                last = failure
+                if target is not self.targets[-1]:
+                    logger.warning("%s:%s failed (%s); falling back to the next configured model.",
+                                   target.provider, target.model, failure.code)
+                continue
+            if target is not self.active:
+                logger.info("Using fallback model %s:%s.", target.provider, target.model)
+            self.active = target
+            return result
+        raise ProviderFailure(last.code, last.provider, status_code=last.status_code,
+                              attempts=last.attempts, tried=tried)
+
+
+def provider_credentials(config, provider):
+    """(api_key, base_url) for a provider from configuration."""
+    if provider == "google":
+        return getattr(config, "GOOGLE_API_KEY", None), None
+    if provider == "openai":
+        return getattr(config, "OPENAI_API_KEY", None), None
+    if provider == "openai_compatible":
+        return (getattr(config, "OPENAI_COMPATIBLE_API_KEY", None),
+                getattr(config, "OPENAI_COMPATIBLE_BASE_URL", None))
+    raise ValueError(f"Unsupported provider: {provider}")
+
+
+def output_cap(config, provider, max_tokens):
+    """Hosted OpenAI-compatible free tiers (Groq, OpenRouter) count the *requested*
+    output against a per-minute token limit, so a 32k request is refused outright.
+    OpenAI-compatible targets therefore get their own, smaller cap."""
+    if provider != "openai_compatible":
+        return max_tokens
+    cap = int(getattr(config, "OPENAI_COMPATIBLE_MAX_TOKENS", 8192) or 8192)
+    return max(256, min(int(max_tokens), cap))
+
+
+def build_json_provider(config, provider, model, max_tokens, directory=None):
+    """The configured model plus its fallbacks, sharing one call recorder.
+
+    A fallback whose credentials are missing is skipped with a warning rather
+    than failing the audit before the primary model has even been tried.
+    """
+    recorder = CallRecorder(directory)
+    thinking = str(getattr(config, "GOOGLE_THINKING_BUDGET", "0") or "default").strip().lower()
+    thinking = None if thinking == "default" else int(thinking)
+    api_key, base_url = provider_credentials(config, provider)
+    targets = [JsonProvider(provider, api_key, model, output_cap(config, provider, max_tokens), directory,
+                            base_url=base_url, recorder=recorder, thinking_budget=thinking)]
+    seen = {(provider, model)}
+    offline = bool(getattr(config, "OFFLINE_MODE", False))
+    chain = parse_fallback_chain(getattr(config, "LLM_FALLBACK_MODELS", None), provider)
+    for fallback_provider, fallback_model in chain:
+        if (fallback_provider, fallback_model) in seen:
+            continue
+        if offline and fallback_provider != "openai_compatible":
+            continue
+        key, url = provider_credentials(config, fallback_provider)
+        try:
+            targets.append(JsonProvider(fallback_provider, key, fallback_model,
+                                        output_cap(config, fallback_provider, max_tokens), directory,
+                                        base_url=url, recorder=recorder, thinking_budget=thinking))
+        except (ProviderFailure, ImportError) as error:
+            logger.warning("Skipping fallback %s:%s (%s).", fallback_provider, fallback_model,
+                           getattr(error, "code", type(error).__name__))
+            continue
+        seen.add((fallback_provider, fallback_model))
+    return FallbackJsonProvider(targets) if len(targets) > 1 else targets[0]

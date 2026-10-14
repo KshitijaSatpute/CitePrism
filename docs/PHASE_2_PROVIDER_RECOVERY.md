@@ -48,9 +48,9 @@ this hotfix. The previously reported run did not create one.
 ```powershell
 & {
     $ErrorActionPreference = "Stop"
-    Set-Location "C:\Users\keyur\Citeprism"
-    $recoveryFolder = "C:\Users\keyur\Downloads\CitePrism_Provider_Recovery"
-    Expand-Archive -LiteralPath "C:\Users\keyur\Downloads\CITEPRISM_PHASE2_PROVIDER_RECOVERY.zip" -DestinationPath $recoveryFolder -Force
+    Set-Location "C:\Users\<you>\Citeprism"
+    $recoveryFolder = "C:\Users\<you>\Downloads\CitePrism_Provider_Recovery"
+    Expand-Archive -LiteralPath "C:\Users\<you>\Downloads\CITEPRISM_PHASE2_PROVIDER_RECOVERY.zip" -DestinationPath $recoveryFolder -Force
     $recoveryPython = ".\.venv-phase1\Scripts\python.exe"
     & $recoveryPython "$recoveryFolder\APPLY_PROVIDER_RECOVERY.py" --project-root . --apply
     if ($LASTEXITCODE -ne 0) { throw "Installer stopped. Read the message above." }

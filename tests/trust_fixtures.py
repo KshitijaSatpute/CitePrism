@@ -16,7 +16,7 @@ def make_kernel(root, repository, tenant=None):
 
 def make_pdf(root, name="paper.pdf", body=b"first"):
     path = Path(root) / name
-    path.write_bytes(b"%PDF-1.4\n" + body)
+    path.write_bytes(b"%PDF-1.4\n" + body + b"\n%%EOF\n")
     return path
 
 

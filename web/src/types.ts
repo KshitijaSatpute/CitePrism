@@ -69,6 +69,19 @@ export interface Reference {
   claim_assessment: string;
   quote_count: number;
   finding_ids: string[];
+  topic_similarity?: number | null;
+  relevance_score?: number | null;
+  relevance_label?: string;
+  relevance_basis?: string;
+  llm_relevance?: number | null;
+  self_citation?: string;
+  metadata_severity?: string;
+  evidence_kind?: string | null;
+}
+
+export interface AuditStartOptions {
+  run_missing_citations: boolean;
+  author_orcids: string[];
 }
 
 export interface Correction {
@@ -147,7 +160,15 @@ export interface Session {
     resolution_providers: string[];
     telemetry: boolean;
     export_signing: string;
+    /** Where manuscript text goes, and on what terms (see src/workspace/data_policy.py). */
+    data_handling?: DataHandling;
   };
+}
+
+export interface DataHandling {
+  terms: "unverified" | "no_training" | "local_only";
+  model_recipients: string[];
+  reference_lookups: string[];
 }
 
 export interface Member {
@@ -229,15 +250,50 @@ export interface MissingCitation {
   verification_status: string;
   already_cited: boolean;
   search_url: string;
+  matched_record?: { title?: string | null; doi?: string | null; year?: number | null; id?: string | null } | null;
+}
+
+export interface CocitationCandidate {
+  openalex_id: string;
+  title: string | null;
+  year: number | null;
+  doi: string | null;
+  authors: string[];
+  venue: string | null;
+  cited_by_count: number | null;
+  support_count: number;
+  supporting_references: string[];
+  url: string;
 }
 
 export interface MissingCitations {
   available: boolean;
   generated: boolean;
   items: MissingCitation[];
+  cocitation?: {
+    status: string;
+    references_with_graph: number;
+    min_support: number | null;
+    candidates: CocitationCandidate[];
+  };
+  counts?: Record<string, number>;
+  analysis_status?: string;
+  limitations?: string[];
   metadata: { provider?: string | null; model?: string | null; generated_at?: string | null };
   guidance: string;
   not_a_claim: string;
+}
+
+export interface SelfCitationSummary {
+  method_version?: string;
+  counts: Record<string, number>;
+  patterns: Array<{ code: string; detail: string }>;
+  questionable: Array<{ reference_id: string; marker: string; reasons: string[]; tier: string }>;
+  by_author: Record<string, number>;
+  orcids: { supplied?: string[]; front_matter?: string[]; attributed?: string[]; unattributed?: string[] };
+  thresholds: Record<string, number>;
+  references: Array<{ reference: string; tier: string; counted: boolean; questionable_reasons: string[] }>;
+  identity_note?: string;
 }
 
 export interface OverlapNode {
@@ -250,6 +306,7 @@ export interface OverlapNode {
 
 export interface AuthorOverlap {
   available: boolean;
+  self_citation?: SelfCitationSummary | null;
   manuscript_authors: string[];
   nodes: OverlapNode[];
   edges: Array<{ author_id: string; author: string; reference: string; kind: string }>;
@@ -295,4 +352,93 @@ export interface SloReport {
   };
   met: boolean;
   note: string;
+}
+
+/* ------------------------------ Assistant ------------------------------ */
+export type AssistantTone = "warning" | "caution" | "neutral" | "ok";
+
+export interface AssistantReference {
+  id: string;
+  marker: string;
+  title: string;
+  note: string;
+  tone: AssistantTone;
+  relevance_score: number | null;
+  relevance_label: string | null;
+}
+
+/** A message the reader can copy and send, e.g. to the authors. */
+export interface AssistantDraft {
+  kind: "letter";
+  subject: string;
+  body: string;
+}
+
+export interface AssistantSection {
+  intent: string;
+  heading: string;
+  text: string;
+  points: string[];
+  references: AssistantReference[];
+  more_references: number;
+  draft?: AssistantDraft | null;
+}
+
+export interface AssistantAction {
+  kind: "report";
+  format: "pdf";
+  style: "standard" | "simple";
+  label: string;
+}
+
+export interface AssistantAnswer {
+  intent: string;
+  text: string;
+  points: string[];
+  references: AssistantReference[];
+  more_references: number;
+  suggestions: string[];
+  grounding: "audit_results" | "model_phrased";
+  model: string | null;
+  sections?: AssistantSection[];
+  actions?: AssistantAction[];
+  offer?: string | null;
+  offer_text?: string | null;
+  register?: "simple" | "standard";
+  language?: string;
+  reference_ids?: string[];
+  draft?: AssistantDraft | null;
+  /** The topics a several-part answer covered, so "explain it more simply" can repeat them. */
+  topics?: string[];
+}
+
+/** One earlier turn, sent back so follow-ups ("why?", "the second one") make sense. */
+export interface AssistantTurn {
+  role: "user" | "assistant";
+  text: string;
+  intent?: string | null;
+  reference_ids?: string[];
+  offer?: string | null;
+  style?: "simple" | "standard" | null;
+  topics?: string[];
+}
+
+/* ------------------------------ Structure ------------------------------ */
+export interface DocumentPart {
+  number: number;
+  page_start: number;
+  page_end: number;
+  pages: number;
+  title: string | null;
+  authors: string[];
+  references: number;
+  reference_heading: string;
+}
+
+export interface DocumentStructure {
+  multi_part: boolean;
+  parts: DocumentPart[];
+  pages: number | null;
+  reference_lists: number;
+  note: string | null;
 }

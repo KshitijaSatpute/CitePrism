@@ -86,8 +86,8 @@ class PhaseZeroTests(unittest.TestCase):
             first = first_dir / "paper.pdf"
             second = second_dir / "paper.pdf"
             duplicate = third_dir / "renamed.pdf"
-            first.write_bytes(b"%PDF-1.4\nfirst")
-            second.write_bytes(b"%PDF-1.4\nsecond")
+            first.write_bytes(b"%PDF-1.4\nfirst\n%%EOF\n")
+            second.write_bytes(b"%PDF-1.4\nsecond\n%%EOF\n")
             duplicate.write_bytes(first.read_bytes())
 
             first_result = orchestrator._stage_register_pdf(first)
@@ -97,7 +97,7 @@ class PhaseZeroTests(unittest.TestCase):
             self.assertNotEqual(
                 first_result["file_paths"]["pdf"], second_result["file_paths"]["pdf"]
             )
-            self.assertEqual(first.read_bytes(), b"%PDF-1.4\nfirst")
+            self.assertEqual(first.read_bytes(), b"%PDF-1.4\nfirst\n%%EOF\n")
             self.assertEqual(
                 first_result["file_paths"]["pdf"],
                 duplicate_result["file_paths"]["pdf"],
@@ -126,7 +126,7 @@ class PhaseZeroTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source.pdf"
             destination = root / "stored" / "paper.pdf"
-            source.write_bytes(b"%PDF-1.4\ncomplete")
+            source.write_bytes(b"%PDF-1.4\ncomplete\n%%EOF\n")
             atomic_copy_file(source, destination)
             self.assertEqual(destination.read_bytes(), source.read_bytes())
 
@@ -210,7 +210,7 @@ class PhaseZeroTests(unittest.TestCase):
             data = root / "data" / "raw_pdfs"
             data.mkdir(parents=True)
             pdf = data / "paper.pdf"
-            pdf.write_bytes(b"%PDF-1.4\nmanaged")
+            pdf.write_bytes(b"%PDF-1.4\nmanaged\n%%EOF\n")
             manager = DatabaseManager(root / "database" / "citeprism.db")
             document_id, _ = manager.register_pdf(pdf)
 
