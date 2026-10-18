@@ -1,6 +1,6 @@
 # CitePrism offline / data-sovereign profile.
 #
-#   docker compose -f compose.phase4.yml -f compose.offline.yml up --build
+#   docker compose --project-directory . -f deploy/compose/compose.phase4.yml -f deploy/compose/compose.offline.yml up --build
 #
 # Extraction, claim assessment and literature-lead generation run on a local
 # model served by Ollama through its OpenAI-compatible API. No manuscript text
@@ -9,7 +9,7 @@
 # "not resolved (offline mode)" rather than as missing.
 #
 # Ollama cannot download models without network access. On a connected machine:
-#     docker compose -f compose.offline.yml run --rm ollama-pull
+#     docker compose --project-directory . -f deploy/compose/compose.phase4.yml -f deploy/compose/compose.offline.yml run --rm ollama-pull
 # then move the `ollama-models` volume to the offline host.
 # For a hard air gap, also block egress at the host firewall; this file removes
 # the application's need for outbound access, it does not enforce isolation.

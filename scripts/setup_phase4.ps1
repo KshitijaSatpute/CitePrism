@@ -50,7 +50,7 @@ try {
     Write-Host "Phase 4 setup finished."
     Write-Host "  1. Configure provider credentials in .env."
     Write-Host "  2. For the durable runtime, start PostgreSQL and MinIO:"
-    Write-Host "       docker compose -f compose.phase4.yml up -d workspace-db objects provision"
+    Write-Host "       docker compose --project-directory . -f deploy/compose/compose.phase4.yml up -d workspace-db objects provision"
     Write-Host "     then set CITEPRISM_WORKSPACE_BACKEND=postgres in .env."
     Write-Host "  3. Verify:  .\scripts\verify_phase4.ps1 -Python .\.venv-phase4\Scripts\python.exe"
     Write-Host "  4. Start:   .\scripts\start_phase4.ps1 -Python .\.venv-phase4\Scripts\python.exe"

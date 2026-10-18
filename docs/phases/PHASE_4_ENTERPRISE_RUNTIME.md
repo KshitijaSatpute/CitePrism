@@ -10,7 +10,7 @@ Nothing here changes the epistemic claim. An automated proposal is still an
 unreviewed model output, and a located quotation still proves attribution to a
 stored snapshot rather than the truth of an interpretation.
 
-![Phase 4 architecture](architecture/phase4-architecture.svg)
+![Phase 4 architecture](../architecture/phase4-architecture.svg)
 
 ## Delivered slice
 
@@ -72,7 +72,7 @@ Open `http://127.0.0.1:5173`. The API schema is at
 Bring up PostgreSQL and MinIO, then apply the workspace schema:
 
 ```powershell
-docker compose -f compose.phase4.yml up -d workspace-db objects provision
+docker compose --project-directory . -f deploy/compose/compose.phase4.yml up -d workspace-db objects provision
 ```
 
 In `.env`:
@@ -95,8 +95,8 @@ Then run the API with two separate workers:
 Or run the whole topology in containers:
 
 ```powershell
-docker compose -f compose.phase4.yml up --build
-docker compose -f compose.phase4.yml up --scale worker=3
+docker compose --project-directory . -f deploy/compose/compose.phase4.yml up --build
+docker compose --project-directory . -f deploy/compose/compose.phase4.yml up --scale worker=3
 ```
 
 ### Migrations

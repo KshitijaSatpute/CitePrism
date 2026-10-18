@@ -138,7 +138,7 @@ services:
     volumes:
       - citeprism-data:/app/data
       - citeprism-database:/app/database
-    # Scale horizontally: docker compose -f compose.phase4.yml up --scale worker=3
+    # Scale horizontally: docker compose --project-directory . -f deploy/compose/compose.phase4.yml up --scale worker=3
     restart: unless-stopped
     read_only: true
     tmpfs:

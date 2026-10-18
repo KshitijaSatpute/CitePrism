@@ -79,7 +79,7 @@ It starts a localhost-only development database on port 55432, applies migration
 with an administrator, and uses a separate restricted runtime role for tests.
 Published Compose credentials are development fixtures only. Tests append to
 fresh UUID tenants and do not delete existing records. The database is left
-running. `docker compose -f compose.trust.yml stop` stops it without deleting its
+running. `docker compose --project-directory . -f deploy/compose/compose.trust.yml stop` stops it without deleting its
 volume. Do not use `down -v` as a troubleshooting shortcut.
 
 If an existing Compose volume lacks the role, inspect it and provision the role

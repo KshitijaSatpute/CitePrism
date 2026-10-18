@@ -14,7 +14,7 @@ try {
     & $Python -c "import sys; assert (3, 11) <= sys.version_info[:2] < (3, 14), 'Use Python 3.11, 3.12 or 3.13'"
     if ($LASTEXITCODE -ne 0) { throw "Python check failed. Pass -Python with the environment interpreter path." }
     if ($WithPostgres) {
-        & docker compose -f compose.trust.yml up -d --wait
+        & docker compose --project-directory . -f deploy/compose/compose.trust.yml up -d --wait
         if ($LASTEXITCODE -ne 0) { throw "Development PostgreSQL did not start." }
         $env:CITEPRISM_TEST_ADMIN_DATABASE_URL = "postgresql://citeprism_admin:citeprism-admin-dev-only@127.0.0.1:55432/citeprism_trust_dev"
         $env:CITEPRISM_TEST_DATABASE_URL = "postgresql://citeprism_app:citeprism-app-dev-only@127.0.0.1:55432/citeprism_trust_dev"
