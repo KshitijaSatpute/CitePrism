@@ -107,7 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         for problem in problems:
             print(f"  - {problem}")
         print("\nRemove these from git (git rm --cached <path>), rotate anything that was "
-              "exposed, and see docs/SECURITY_KEY_ROTATION.md.")
+              "exposed, and see docs/operations/SECURITY_KEY_ROTATION.md.")
         return 1
     print("Secret check passed: no secrets are tracked.")
     return 0

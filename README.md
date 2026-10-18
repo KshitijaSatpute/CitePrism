@@ -285,7 +285,7 @@ required.** Choose one:
 | Google Gemini | Free tier, key from https://aistudio.google.com/ | `LLM_PROVIDER="google"`, `GOOGLE_API_KEY=...`, `GOOGLE_MODEL="gemini-3.6-flash"` |
 | Groq | Free tier with tight per-minute limits — best as a fallback; key from https://console.groq.com/ | `OPENAI_COMPATIBLE_BASE_URL=https://api.groq.com/openai/v1`, `OPENAI_COMPATIBLE_MODEL=llama-3.3-70b-versatile`, `OPENAI_COMPATIBLE_API_KEY=...`, `OPENAI_COMPATIBLE_MAX_TOKENS=6000` (plus `LLM_PROVIDER=openai_compatible` to make it the main model) |
 | OpenAI | Paid | `LLM_PROVIDER="openai"`, `OPENAI_API_KEY=...`, `OPENAI_MODEL="gpt-4o"` |
-| Ollama on your computer | Free, fully offline | See `compose.offline.yml` and the Ollama preset in `env.example` |
+| Ollama on your computer | Free, fully offline | See `deploy/compose/compose.offline.yml` and the Ollama preset in `env.example` |
 
 Citations are judged by `CITEPRISM_ASSESSMENT_PROVIDER`: set it to the same provider (`google`, `openai` or
 `openai_compatible`) so one key does everything, or keep the default `huggingface` and add an `HF_API_TOKEN`
@@ -382,7 +382,7 @@ CITEPRISM_EXPORT_SIGNING_KEY=secrets/export-signing.key
 ```
 
 Each installation uses its own key. Never share or commit it; if a key was ever pushed, follow
-[the rotation runbook](docs/SECURITY_KEY_ROTATION.md).
+[the rotation runbook](docs/operations/SECURITY_KEY_ROTATION.md).
 
 ## 6. Local Runtime Configuration
 
@@ -446,17 +446,19 @@ Phase 4 additionally supports:
 - Durable audit jobs
 - Multi-user infrastructure
 
+For deployment profiles, validation, and persistent storage, see the [Deployment Guide](deploy/README.md).
+
 Docker helps run PostgreSQL and MinIO consistently across development machines.
 
 The optional services can be started using:
 
 ```powershell
-docker compose -f compose.phase4.yml up -d workspace-db objects provision
+docker compose --project-directory . -f deploy/compose/compose.phase4.yml up -d workspace-db objects provision
 ```
 
 The database, object-storage, and worker configuration must then be updated according to:
 
-[Phase 4 Enterprise Runtime](docs/PHASE_4_ENTERPRISE_RUNTIME.md)
+[Phase 4 Enterprise Runtime](docs/phases/PHASE_4_ENTERPRISE_RUNTIME.md)
 
 The Docker Compose credentials supplied for local development must not be reused for a production deployment.
 
@@ -768,7 +770,7 @@ same seed:
 
 On a 263-page German edited volume (248 references) every planted error was found with no false alarms
 after the fixes in 5.4; the first run exposed four real defects. Results, scope and limits:
-[docs/BENCHMARK.md](docs/BENCHMARK.md). These numbers cover the rule-based detectors only — accuracy of
+[docs/evaluation/BENCHMARK.md](docs/evaluation/BENCHMARK.md). These numbers cover the rule-based detectors only — accuracy of
 relevance and support judgements needs a human-annotated evaluation, which has not been done yet.
 
 # 🧩 Additional NLP and Research Features
@@ -849,9 +851,13 @@ CitePrism-V2/
 ├── scripts/                   setup / verify / start for Windows (.ps1) and macOS/Linux (.sh), worker, tools
 ├── docs/                      Architecture, evaluation, benchmark, requirement traceability, security
 ├── env.example                Template for your private .env
-├── requirements-phase4.txt    Python dependencies (requirements-embeddings.txt: optional local embeddings)
-├── compose.phase4.yml         Optional PostgreSQL + MinIO (+ API, worker, web) with Docker
-└── compose.offline.yml        Optional local language model (Ollama) for offline audits
+├── requirements/                Python dependency manifests
+└── deploy/                      Docker deployment files
+    └── compose/
+        ├── compose.phase3.yml
+        ├── compose.phase4.yml
+        ├── compose.trust.yml
+        └── compose.offline.yml
 ```
 
 ---
@@ -928,17 +934,17 @@ Historical components remain useful for understanding how the project evolved, b
 
 ### Technical Documentation
 
-- [CitePrism V2.0 requirement traceability](docs/V2_REQUIREMENTS_TRACEABILITY.md) — every V2.0 requirement mapped to code and tests
-- [Evaluation](docs/EVALUATION.md) — an examiner's assessment: strengths, limits, steps before deployment
-- [Error-injection benchmark](docs/BENCHMARK.md) — how accurately the rule-based checks find planted errors
-- [Removing committed secrets and rotating keys](docs/SECURITY_KEY_ROTATION.md)
+- [CitePrism V2.0 requirement traceability](docs/evaluation/V2_REQUIREMENTS_TRACEABILITY.md) — every V2.0 requirement mapped to code and tests
+- [Evaluation](docs/evaluation/EVALUATION.md) — an examiner's assessment: strengths, limits, steps before deployment
+- [Error-injection benchmark](docs/evaluation/BENCHMARK.md) — how accurately the rule-based checks find planted errors
+- [Removing committed secrets and rotating keys](docs/operations/SECURITY_KEY_ROTATION.md)
 
-- [Phase 0 — Stabilization](docs/PHASE_0_STABILIZATION.md)
-- [Phase 1 — Trust Kernel](docs/PHASE_1_TRUST_KERNEL.md)
-- [Phase 2 — Evidence Engine](docs/PHASE_2_EVIDENCE_ENGINE.md)
-- [Phase 3 — Human Review Workspace](docs/PHASE_3_REVIEW_WORKSPACE.md)
-- [Phase 4 — Enterprise Runtime](docs/PHASE_4_ENTERPRISE_RUNTIME.md)
-- [Threat Model](docs/THREAT_MODEL.md)
+- [Phase 0 — Stabilization](docs/phases/PHASE_0_STABILIZATION.md)
+- [Phase 1 — Trust Kernel](docs/phases/PHASE_1_TRUST_KERNEL.md)
+- [Phase 2 — Evidence Engine](docs/phases/PHASE_2_EVIDENCE_ENGINE.md)
+- [Phase 3 — Human Review Workspace](docs/phases/PHASE_3_REVIEW_WORKSPACE.md)
+- [Phase 4 — Enterprise Runtime](docs/phases/PHASE_4_ENTERPRISE_RUNTIME.md)
+- [Threat Model](docs/architecture/THREAT_MODEL.md)
 
 ---
 
@@ -980,7 +986,7 @@ uploaded manuscripts
 ```
 
 CI runs the same check and fails if a key file or `.env` is tracked. If a key has ever been pushed, deleting
-it is not enough — follow [the rotation runbook](docs/SECURITY_KEY_ROTATION.md).
+it is not enough — follow [the rotation runbook](docs/operations/SECURITY_KEY_ROTATION.md).
 
 The default local-authentication application must not be exposed directly to the public internet.
 
@@ -1006,7 +1012,7 @@ CitePrism Phase 4 provides:
 - ORCID-aware self-citation analysis and pattern detection
 - Field-level metadata consistency checks
 - Co-citation and verified missing-literature suggestions
-- Fully offline operation with a local OpenAI-compatible model (`compose.offline.yml`)
+- Fully offline operation with a local OpenAI-compatible model (`deploy/compose/compose.offline.yml`)
 - Evaluation with AUROC, threshold sweeps and bootstrap confidence intervals
 
 The default local runtime is intended for development and testing on a trusted workstation.

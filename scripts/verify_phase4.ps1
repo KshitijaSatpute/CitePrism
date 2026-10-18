@@ -39,7 +39,7 @@ try {
 
     if ($WithPostgres) {
         Write-Host "Starting the disposable workspace database..."
-        & docker compose -f compose.phase4.yml up -d --wait workspace-db
+        & docker compose --project-directory . -f deploy/compose/compose.phase4.yml up -d --wait workspace-db
         if ($LASTEXITCODE -ne 0) { throw "The workspace PostgreSQL container did not start." }
         $env:CITEPRISM_TEST_WORKSPACE_ADMIN_URL = "postgresql://citeprism_admin:citeprism-admin-dev-only@127.0.0.1:55433/citeprism_workspace"
         $env:CITEPRISM_TEST_WORKSPACE_URL = "postgresql://citeprism_workspace_app:citeprism-workspace-dev-only@127.0.0.1:55433/citeprism_workspace"

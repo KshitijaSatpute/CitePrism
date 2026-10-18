@@ -89,7 +89,7 @@ This is an application control, not a government authorization. OIDC/JWT validat
 After setting `.env`:
 
 ```powershell
-docker compose -f compose.phase3.yml up --build
+docker compose --project-directory . -f deploy/compose/compose.phase3.yml up --build
 ```
 
 Open `http://127.0.0.1:8080`. Both published ports bind to loopback. The compose file is a hardened development preview, not a production topology. Before a release, resolve image tags to approved immutable digests and produce platform-specific hashed Python locks/SBOMs in CI.

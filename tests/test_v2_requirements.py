@@ -1,7 +1,7 @@
 """Acceptance tests for the CitePrism V2.0 requirements.
 
 Each test class names the V2.0 statement it verifies, so the traceability matrix
-in docs/V2_REQUIREMENTS_TRACEABILITY.md can point at executable evidence.
+in docs/evaluation/V2_REQUIREMENTS_TRACEABILITY.md can point at executable evidence.
 Every test is offline: provider traffic is simulated and labelled as such.
 """
 

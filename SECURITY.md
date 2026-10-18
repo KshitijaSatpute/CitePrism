@@ -8,7 +8,7 @@ your established collaboration channel. Do not include live secrets or sensitive
 manuscripts in public issue reports. No security contact address or response SLA
 has been assigned in this repository.
 
-See `docs/THREAT_MODEL.md` for implemented controls and gaps. Before deployment:
+See `docs/architecture/THREAT_MODEL.md` for implemented controls and gaps. Before deployment:
 deploy `trusted_proxy` mode behind an identity-aware gateway that strips client
 identity headers; validate the tenant isolation boundary; separate migration
 credentials; rotate public dev passwords; configure
