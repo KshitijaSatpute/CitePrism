@@ -3,8 +3,8 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 RUN addgroup --system citeprism && adduser --system --ingroup citeprism citeprism
-COPY requirements-phase3.txt ./
-RUN python -m pip install --upgrade pip && python -m pip install -r requirements-phase3.txt
+COPY requirements/ ./requirements/
+RUN python -m pip install --upgrade pip && python -m pip install -r requirements/requirements-phase3.txt
 COPY --chown=citeprism:citeprism . .
 RUN mkdir -p /app/data /app/database /app/logs /app/cache && chown -R citeprism:citeprism /app
 USER citeprism
