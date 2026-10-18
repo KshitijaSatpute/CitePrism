@@ -54,9 +54,9 @@ fi
 VENV_PY=.venv-phase4/bin/python
 
 "$VENV_PY" -m pip install --upgrade pip
-"$VENV_PY" -m pip install -r requirements-phase4.txt -r requirements-dev.txt
+"$VENV_PY" -m pip install -r requirements/requirements-phase4.txt -r requirements/requirements-dev.txt
 if [ "$WITH_EMBEDDINGS" -eq 1 ]; then
-  "$VENV_PY" -m pip install -r requirements-embeddings.txt
+  "$VENV_PY" -m pip install -r requirements/requirements-embeddings.txt
 fi
 
 if [ ! -f .env ]; then

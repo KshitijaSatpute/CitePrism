@@ -23,7 +23,7 @@ exclude = ["tests*"]
 namespaces = true
 
 [tool.setuptools.dynamic]
-dependencies = {file = ["requirements-phase3.txt"]}
+dependencies = {file = ["requirements/requirements-phase3.txt"]}
 
 [tool.setuptools.package-data]
 "database.migrations" = ["*.sql"]

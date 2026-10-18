@@ -17,10 +17,10 @@ try {
 
     $python = Join-Path $root ".venv-phase4\Scripts\python.exe"
     & $python -m pip install --upgrade pip
-    & $python -m pip install -r requirements-phase4.txt -r requirements-dev.txt
+    & $python -m pip install -r requirements/requirements-phase4.txt -r requirements/requirements-dev.txt
     if ($LASTEXITCODE -ne 0) { throw "Python dependency installation failed." }
     if ($WithEmbeddings) {
-        & $python -m pip install -r requirements-embeddings.txt
+        & $python -m pip install -r requirements/requirements-embeddings.txt
         if ($LASTEXITCODE -ne 0) { throw "Embedding model dependencies failed to install." }
     }
 

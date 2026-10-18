@@ -10,7 +10,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Could not create the Python environment." }
     $python = Join-Path $root ".venv-phase3\Scripts\python.exe"
     & $python -m pip install --upgrade pip
-    & $python -m pip install -r requirements-phase3.txt -r requirements-dev.txt
+    & $python -m pip install -r requirements/requirements-phase3.txt -r requirements/requirements-dev.txt
     if ($LASTEXITCODE -ne 0) { throw "Python dependency installation failed." }
     if (-not (Test-Path .env)) { Copy-Item env.example .env }
     Push-Location web

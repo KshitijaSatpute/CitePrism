@@ -1,2 +1,2 @@
 # Default installation for the current evidence workspace.
--r requirements-phase2.txt
+-r requirements/requirements-phase2.txt
