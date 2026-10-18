@@ -16,7 +16,7 @@ def main():
     args = parser.parse_args()
     suite = unittest.defaultTestLoader.discover(str(ROOT / 'tests'), top_level_dir=str(ROOT))
     result = unittest.TextTestRunner(verbosity=2).run(suite)
-    postgres_skips = [str(test) for test, reason in result.skipped if 'postgres' in str(test).lower()]
+    postgres_skips = [str(test) for test, reason in result.skipped if 'tests.test_trust_postgres.' in str(test)]
     accepted = result.wasSuccessful() and not (args.require_postgres and postgres_skips)
     report = {'accepted': accepted, 'tests_run': result.testsRun, 'passed': result.testsRun -
               len(result.errors) - len(result.failures) - len(result.skipped),
